@@ -362,8 +362,8 @@
         $$\phi_k(\mathbf{x}) = \sum_{i=1}^{N_k} w_{k,i} \cdot k_{\theta_k}(\mathbf{x}, \mathbf{x}_i)$$
       </div>
       <p>
-        where $k_{\theta_k}$ is a kernel function and $\{\mathbf{x}_i\}$ are inducing points. For dynamic fields like $\eta(\mathbf{x}, t)$, we employ Fourier Neural Operators (FNOs) to capture long-range spatiotemporal dependencies:
-      </p>
+        where $\mathcal{F}$ and $\mathcal{F}^{-1}$ denote the forward and inverse spatial Fourier transforms, respectively. This formulation allows GVFT to model long-range spatiotemporal dependencies efficiently using learned transformations in the frequency domain.
+      </p>      
       <div class="equation-box">
         $$\phi_k(\mathbf{x}, t) = \mathcal{F}^{-1}\left( \sum_{|\omega| < K} R_\omega(\mathcal{F}(\phi_k)(\omega, t)) \right)$$
       </div>
@@ -407,7 +407,7 @@
         $$\mathcal{L}_{\text{reg}} = \sum_{k=1}^n \lambda_k \int_{\Omega} \|\nabla \phi_k(\mathbf{x})\|^2 \, d\mathbf{x}$$
       </div>
       <p>
-        where $\nabla$ is the standard gradient operator in $\mathbb{R}^d$, $\lambda_k > 0$ are weighting coefficients, and the integral encourages spatial smoothness. For fields representing directional flows (e.g., connectivity flow $\mathbf{F}$), we add a divergence penalty to promote conservation:
+        where $\nabla$ is the standard gradient operator in $\mathbb{R}^d$, $\lambda_k > 0$ are weighting coefficients, and the integral encourages spatial smoothness. For fields representing directional flows (e.g., connectivity flow $\mathbf{F}$), we add a divergence penalty to promote conservation and avoid implausible divergence artifacts in the learned flow fields:
       </p>
       <div class="equation-box">
         $$\mathcal{L}_{\text{div}} = \lambda_{\text{div}} \int_{\Omega} \|\nabla \cdot \mathbf{F}(\mathbf{x})\|^2 \, d\mathbf{x}$$
