@@ -212,130 +212,6 @@
         This framework offers a new kind of design space: spatial, differentiable, and biologically grounded. Rather than asking "what architecture performs best," GVFT invites the question: "what field dynamics give rise to compositional cognition?" It provides both the mathematical tools and the conceptual vocabulary to explore that space.
       </p>
     </section>    
-    
-    <section>
-      <h2>0. Comparison of GVFT with Prior Approaches</h2>
-      <table>
-          <thead>
-              <tr>
-                  <th>Approach</th>
-                  <th>Representation</th>
-                  <th>Biological Fidelity</th>
-                  <th>Optimization Method</th>
-                  <th>Application Domain</th>
-              </tr>
-          </thead>
-          <tbody>
-              <tr>
-                  <td>Gestalt Vector Field Theory (GVFT)</td>
-                  <td>Continuous vector and scalar fields over a Riemannian manifold, encoding connectivity, synaptic strengths, delays, cell types, and neuromodulation.</td>
-                  <td>High: Explicit modeling of axon guidance, neuromodulation, and field couplings inspired by developmental biology.</td>
-                  <td>Variational optimization with task, regularization, cross-field, and dynamic constraints; holographic compression with topological priors.</td>
-                  <td>Generating modular neural architectures for AI; modeling biological connectomes bidirectionally.</td>
-              </tr>
-              <tr>
-                  <td>L-Systems</td>
-                  <td>Discrete, rule-based grammars generating fractal-like structures.</td>
-                  <td>Moderate: Inspired by plant growth, abstractly models developmental processes.</td>
-                  <td>Hand-crafted rules or evolutionary algorithms; no differentiable optimization.</td>
-                  <td>Generating modular architectures; modeling biological growth patterns (e.g., plants, simple neural networks).</td>
-              </tr>
-              <tr>
-                  <td>Compositional Pattern Producing Networks (CPPNs)</td>
-                  <td>Static neural networks mapping coordinates to patterns, evolved via genetic algorithms.</td>
-                  <td>Moderate: Inspired by developmental encoding, but abstract and not explicitly biological.</td>
-                  <td>Evolutionary algorithms (e.g., NEAT); no end-to-end differentiable optimization.</td>
-                  <td>Evolving neural architectures; generating synthetic patterns for tasks like image generation.</td>
-              </tr>
-              <tr>
-                  <td>Developmental Neural Models (e.g., Kitano, Dellaert)</td>
-                  <td>Discrete grammars or genetic encodings for generating network topologies.</td>
-                  <td>Moderate: Mimics developmental processes, but lacks detailed biological constraints.</td>
-                  <td>Genetic algorithms or graph-rewriting; limited optimization flexibility.</td>
-                  <td>Evolving small-scale neural networks; exploring developmental encodings for AI.</td>
-              </tr>
-              <tr>
-                  <td>Cortical Field Models</td>
-                  <td>Continuous fields (e.g., reaction-diffusion PDEs) modeling neural activity or connectivity.</td>
-                  <td>High: Directly models cortical dynamics with biological realism.</td>
-                  <td>Simulation-based; not optimized for architecture generation.</td>
-                  <td>Simulating neural dynamics in computational neuroscience; not for AI architecture design.</td>
-              </tr>
-              <tr>
-                  <td>Variational Neural Architecture Search (NAS)</td>
-                  <td>Discrete graph structures (e.g., layers, connections) parameterized for search.</td>
-                  <td>Low: Minimal biological inspiration, focused on computational efficiency.</td>
-                  <td>Variational or gradient-based optimization (e.g., DARTS, ENAS).</td>
-                  <td>Designing high-performance neural architectures for vision, language, etc.</td>
-              </tr>
-          </tbody>
-      </table>
-      
-      <h3>Detailed Connections to Existing Work</h3>
-      <p>
-        GVFT builds upon and extends several lines of research in architecture design and biological modeling. Here we clarify these connections in detail:
-      </p>
-      
-      <h4>0.1 Differentiable Architecture Search (DARTS)</h4>
-      <p>
-        Liu et al. (2019) introduced DARTS as a gradient-based method for architecture search, relaxing the discrete search space into a continuous one. GVFT shares this differentiable philosophy but differs fundamentally in representation:
-      </p>
-      <ul>
-        <li><strong>DARTS</strong> uses architecture parameters α to weight operations in a fixed DAG (directed acyclic graph) structure.</li>
-        <li><strong>GVFT</strong> defines continuous spatial fields from which both module placement and connection strength emerge.</li>
-      </ul>
-      <p>
-        DARTS optimizes a supernet to approximate performance without full training, similar to how GVFT samples architectures from field values. However, DARTS lacks the ability to model dynamic processes or encode spatial relationships that GVFT emphasizes.
-      </p>
-      
-      <h4>0.2 Neural Ordinary Differential Equations (Neural ODEs)</h4>
-      <p>
-        Chen et al. (2018) formulated neural network layers as continuous transformations defined by ODEs. GVFT's dynamic field equations (especially for neuromodulatory fields) are conceptually related but serve a different purpose:
-      </p>
-      <ul>
-        <li><strong>Neural ODEs</strong> define network activations as continuous processes in time.</li>
-        <li><strong>GVFT</strong> uses PDEs to model how architectural properties evolve in both space and time.</li>
-      </ul>
-      <p>
-        While Neural ODEs focus on continuous-depth activations, GVFT applies continuous mathematics to the meta-level of architecture specification itself.
-      </p>
-      
-      <h4>0.3 HyperNetworks and Weight Generation</h4>
-      <p>
-        Ha et al. (2017) introduced HyperNetworks that generate weights for another network. GVFT's field-to-architecture mapping has parallels:
-      </p>
-      <ul>
-        <li><strong>HyperNetworks</strong> use a network to generate weights for a target network, creating a weight-sharing dynamic.</li>
-        <li><strong>GVFT</strong> uses field ensembles to specify connectivity patterns and module properties across a spatial domain.</li>
-      </ul>
-      <p>
-        The key difference is that hypernetworks typically generate weights directly, while GVFT generates architectural specifications from which weights are then derived through spatial interpretations.
-      </p>
-      
-      <h4>0.4 Graph Neural Networks (GNNs) and Architecture Learning</h4>
-      <p>
-        Recent work by You et al. (2020) uses graph neural networks for architecture search by learning graph-level representations. GVFT's approach to modular connectivity complements this:
-      </p>
-      <ul>
-        <li><strong>Graph-based NAS</strong> requires discrete graph operations and struggles with continuous optimization.</li>
-        <li><strong>GVFT</strong> represents architectures as continuous fields, making them amenable to gradient-based optimization.</li>
-      </ul>
-      <p>
-        GVFT could potentially be combined with GNN approaches, using GNNs to better process the resulting architectures once instantiated from fields.
-      </p>
-      
-      <h4>0.5 Biologically-Inspired Neural Development</h4>
-      <p>
-        GVFT draws heavily from neurodevelopmental principles studied by Ooyen (2011) and others:
-      </p>
-      <ul>
-        <li><strong>Biological neural development</strong> uses molecular gradients, cell migration, and axon guidance to form structured connectivity.</li>
-        <li><strong>GVFT</strong> abstracts these principles into differentiable fields that can be optimized for computational tasks.</li>
-      </ul>
-      <p>
-        Unlike purely abstract computational approaches, GVFT maintains biological plausibility by modeling development-inspired processes like flow fields (analogous to axon guidance) and modulatory fields (analogous to neurotransmitter systems).
-      </p>
-    </section>
 
     <section>
       <h2>1. Conceptual Model</h2>
@@ -565,6 +441,130 @@
       <h2>Conclusion</h2>
       <p>
         Gestalt Vector Field Theory provides a mathematically rigorous, biologically plausible, and scalable framework for modular cognitive system design. It opens new paths toward evolvable and interpretable artificial intelligence.
+      </p>
+    </section>
+
+    <section>
+      <h2>Appendix A: Comparison with Prior Approaches</h2>
+      <table>
+          <thead>
+              <tr>
+                  <th>Approach</th>
+                  <th>Representation</th>
+                  <th>Biological Fidelity</th>
+                  <th>Optimization Method</th>
+                  <th>Application Domain</th>
+              </tr>
+          </thead>
+          <tbody>
+              <tr>
+                  <td>Gestalt Vector Field Theory (GVFT)</td>
+                  <td>Continuous vector and scalar fields over a Riemannian manifold, encoding connectivity, synaptic strengths, delays, cell types, and neuromodulation.</td>
+                  <td>High: Explicit modeling of axon guidance, neuromodulation, and field couplings inspired by developmental biology.</td>
+                  <td>Variational optimization with task, regularization, cross-field, and dynamic constraints; holographic compression with topological priors.</td>
+                  <td>Generating modular neural architectures for AI; modeling biological connectomes bidirectionally.</td>
+              </tr>
+              <tr>
+                  <td>L-Systems</td>
+                  <td>Discrete, rule-based grammars generating fractal-like structures.</td>
+                  <td>Moderate: Inspired by plant growth, abstractly models developmental processes.</td>
+                  <td>Hand-crafted rules or evolutionary algorithms; no differentiable optimization.</td>
+                  <td>Generating modular architectures; modeling biological growth patterns (e.g., plants, simple neural networks).</td>
+              </tr>
+              <tr>
+                  <td>Compositional Pattern Producing Networks (CPPNs)</td>
+                  <td>Static neural networks mapping coordinates to patterns, evolved via genetic algorithms.</td>
+                  <td>Moderate: Inspired by developmental encoding, but abstract and not explicitly biological.</td>
+                  <td>Evolutionary algorithms (e.g., NEAT); no end-to-end differentiable optimization.</td>
+                  <td>Evolving neural architectures; generating synthetic patterns for tasks like image generation.</td>
+              </tr>
+              <tr>
+                  <td>Developmental Neural Models (e.g., Kitano, Dellaert)</td>
+                  <td>Discrete grammars or genetic encodings for generating network topologies.</td>
+                  <td>Moderate: Mimics developmental processes, but lacks detailed biological constraints.</td>
+                  <td>Genetic algorithms or graph-rewriting; limited optimization flexibility.</td>
+                  <td>Evolving small-scale neural networks; exploring developmental encodings for AI.</td>
+              </tr>
+              <tr>
+                  <td>Cortical Field Models</td>
+                  <td>Continuous fields (e.g., reaction-diffusion PDEs) modeling neural activity or connectivity.</td>
+                  <td>High: Directly models cortical dynamics with biological realism.</td>
+                  <td>Simulation-based; not optimized for architecture generation.</td>
+                  <td>Simulating neural dynamics in computational neuroscience; not for AI architecture design.</td>
+              </tr>
+              <tr>
+                  <td>Variational Neural Architecture Search (NAS)</td>
+                  <td>Discrete graph structures (e.g., layers, connections) parameterized for search.</td>
+                  <td>Low: Minimal biological inspiration, focused on computational efficiency.</td>
+                  <td>Variational or gradient-based optimization (e.g., DARTS, ENAS).</td>
+                  <td>Designing high-performance neural architectures for vision, language, etc.</td>
+              </tr>
+          </tbody>
+      </table>
+      
+      <h3>Detailed Connections to Existing Work</h3>
+      <p>
+        GVFT builds upon and extends several lines of research in architecture design and biological modeling. Here we clarify these connections in detail:
+      </p>
+      
+      <h4>Differentiable Architecture Search (DARTS)</h4>
+      <p>
+        Liu et al. (2019) introduced DARTS as a gradient-based method for architecture search, relaxing the discrete search space into a continuous one. GVFT shares this differentiable philosophy but differs fundamentally in representation:
+      </p>
+      <ul>
+        <li><strong>DARTS</strong> uses architecture parameters α to weight operations in a fixed DAG (directed acyclic graph) structure.</li>
+        <li><strong>GVFT</strong> defines continuous spatial fields from which both module placement and connection strength emerge.</li>
+      </ul>
+      <p>
+        DARTS optimizes a supernet to approximate performance without full training, similar to how GVFT samples architectures from field values. However, DARTS lacks the ability to model dynamic processes or encode spatial relationships that GVFT emphasizes.
+      </p>
+      
+      <h4>Neural Ordinary Differential Equations (Neural ODEs)</h4>
+      <p>
+        Chen et al. (2018) formulated neural network layers as continuous transformations defined by ODEs. GVFT's dynamic field equations (especially for neuromodulatory fields) are conceptually related but serve a different purpose:
+      </p>
+      <ul>
+        <li><strong>Neural ODEs</strong> define network activations as continuous processes in time.</li>
+        <li><strong>GVFT</strong> uses PDEs to model how architectural properties evolve in both space and time.</li>
+      </ul>
+      <p>
+        While Neural ODEs focus on continuous-depth activations, GVFT applies continuous mathematics to the meta-level of architecture specification itself.
+      </p>
+      
+      <h4>HyperNetworks and Weight Generation</h4>
+      <p>
+        Ha et al. (2017) introduced HyperNetworks that generate weights for another network. GVFT's field-to-architecture mapping has parallels:
+      </p>
+      <ul>
+        <li><strong>HyperNetworks</strong> use a network to generate weights for a target network, creating a weight-sharing dynamic.</li>
+        <li><strong>GVFT</strong> uses field ensembles to specify connectivity patterns and module properties across a spatial domain.</li>
+      </ul>
+      <p>
+        The key difference is that hypernetworks typically generate weights directly, while GVFT generates architectural specifications from which weights are then derived through spatial interpretations.
+      </p>
+      
+      <h4>Graph Neural Networks (GNNs) and Architecture Learning</h4>
+      <p>
+        Recent work by You et al. (2020) uses graph neural networks for architecture search by learning graph-level representations. GVFT's approach to modular connectivity complements this:
+      </p>
+      <ul>
+        <li><strong>Graph-based NAS</strong> requires discrete graph operations and struggles with continuous optimization.</li>
+        <li><strong>GVFT</strong> represents architectures as continuous fields, making them amenable to gradient-based optimization.</li>
+      </ul>
+      <p>
+        GVFT could potentially be combined with GNN approaches, using GNNs to better process the resulting architectures once instantiated from fields.
+      </p>
+      
+      <h4>Biologically-Inspired Neural Development</h4>
+      <p>
+        GVFT draws heavily from neurodevelopmental principles studied by Ooyen (2011) and others:
+      </p>
+      <ul>
+        <li><strong>Biological neural development</strong> uses molecular gradients, cell migration, and axon guidance to form structured connectivity.</li>
+        <li><strong>GVFT</strong> abstracts these principles into differentiable fields that can be optimized for computational tasks.</li>
+      </ul>
+      <p>
+        Unlike purely abstract computational approaches, GVFT maintains biological plausibility by modeling development-inspired processes like flow fields (analogous to axon guidance) and modulatory fields (analogous to neurotransmitter systems).
       </p>
     </section>
     
