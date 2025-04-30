@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>gestalt Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</title>
+    <title>Gestalt Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</title>
     <script type="text/javascript">
         window.MathJax = {
             tex: {
@@ -194,7 +194,6 @@
       </p>
     </div>
     
-
     <section>
       <h2>Overview and Motivation</h2>
       <p>
@@ -213,7 +212,6 @@
         This framework offers a new kind of design space: spatial, differentiable, and biologically grounded. Rather than asking “what architecture performs best,” GVFT invites the question: “what field dynamics give rise to compositional cognition?” It provides both the mathematical tools and the conceptual vocabulary to explore that space.
       </p>
     </section>    
-    
     
     <section>
       <h2>Comparison of GVFT with Prior Approaches</h2>
@@ -275,322 +273,246 @@
     </section>
 
     <section>
-        <h2>1. Conceptual Model</h2>
-        <p>
-            We define a family of fields $\Theta(\mathbf{x}) = \{\phi_1(\mathbf{x}), \ldots, \phi_n(\mathbf{x})\}$ over a continuous domain $\Omega \subset \mathbb{R}^d$. The domain $\Omega$ is defined as a Riemannian manifold equipped with a metric tensor $g$ that captures the intrinsic geometry of the substrate (e.g., a cortical sheet or brain volume). Each field $\phi_k: \Omega \rightarrow \mathbb{R}^{m_k}$ encodes a biologically or functionally relevant property:
-        </p>
-        <div style="margin-left: 1.5em;">
-          <div>$$\phi_1 = \mathbf{F}(\mathbf{x}) \in \mathbb{R}^d: \text{ connectivity flow}$$</div>
-          <div>$$\phi_2 = W(\mathbf{x}) \in \mathbb{R}: \text{ synaptic strength}$$</div>
-          <div>$$\phi_3 = \tau(\mathbf{x}) \in \mathbb{R}^+: \text{ axonal delay}$$</div>
-          <div>$$\phi_4 = C(\mathbf{x}) \in \mathbb{R}^K: \text{ cell type logits}$$</div>
-          <div>$$\phi_5 = \eta(\mathbf{x},t) \in \mathbb{R}: \text{ neuromodulatory field}$$</div>
-        </div> 
-        <p>
-            Rather than parameterizing each field independently through a generic MLP, we employ structured functional representations that capture spatial correlations and enforce biological constraints. For stationary fields, we use a Gaussian Process (GP) representation:
-        </p>
-        <div class="equation-box">
-            $$\phi_k(\mathbf{x}) = \sum_{i=1}^{N_k} w_{k,i} \, k_{\theta_k}(\mathbf{x}, \mathbf{x}_i)$$
-        </div>
-        <p>
-            where $k_{\theta_k}$ is a kernel function (e.g., radial basis function) with parameters $\theta_k$, and $\{\mathbf{x}_i\}_{i=1}^{N_k}$ are inducing points. For time-dependent fields, we employ a Fourier Neural Operator (FNO) representation to efficiently model spatiotemporal dynamics:
-        </p>
-        <div class="equation-box">
-            $$\phi_5(\mathbf{x},t) = \mathcal{F}^{-1}\left(\sum_{|\omega|<K} R_\omega(\mathcal{F}(\phi_5)(\omega,t))\right)$$
-        </div>
-        <p>
-            where $\mathcal{F}$ denotes the Fourier transform, $\omega$ are frequencies, and $R_\omega$ are learned operators in frequency space.
-        </p>
-        
-        <h3>1.1 Biological and Computational Interpretations of Fields</h3>
-        <ul>
-            <li><strong>Connectivity Flow</strong> ($\phi_1$): Analogous to axon guidance fields in brain development, modeling preferential paths for wiring. Computationally, directs connectivity structure.</li>
-            <li><strong>Synaptic Strength</strong> ($\phi_2$): Represents local chemical concentration gradients affecting initial synapse formation probability.</li>
-            <li><strong>Axonal Delay</strong> ($\phi_3$): Captures conduction delays due to axon length and properties, critical for synchronization.</li>
-            <li><strong>Cell Type Logits</strong> ($\phi_4$): Encodes local preferences for neuron specialization (e.g., excitatory, inhibitory).</li>
-            <li><strong>Neuromodulatory Field</strong> ($\phi_5$): Models slower-acting influences like dopamine diffusion, modulating plasticity and learning rates.</li>
-        </ul>
-        
-        <h3>1.2 Field Couplings and Interactions</h3>
-        <p>
-            In biological systems, these fields are not independent but interact through complex pathways. We model these interactions explicitly through coupling terms:
-        </p>
-        <div class="equation-box">
-            $$W(\mathbf{x}) = \beta_W \cdot \sigma(\|\mathbf{F}(\mathbf{x})\|) + (1-\beta_W) \cdot W_{\text{base}}(\mathbf{x})$$
-        </div>
-        <p>
-            where $\sigma$ is a sigmoid activation, $\beta_W \in [0,1]$ controls coupling strength, and $W_{\text{base}}$ is the baseline field. Similarly, we couple cell type preferences to connectivity flow:
-        </p>
-        <div class="equation-box">
-            $$C(\mathbf{x}) = C_{\text{base}}(\mathbf{x}) + \gamma_C \cdot \mathcal{T}(\mathbf{F}(\mathbf{x}))$$
-        </div>
-        <p>
-            where $\mathcal{T}$ is a learned transformation and $\gamma_C$ is a coupling coefficient.
-        </p>
+      <h2>1. Conceptual Model</h2>
+      <p>
+        Gestalt Vector Field Theory (GVFT) defines a modular neural architecture not as a fixed graph, but as a collection of continuous fields over a spatial domain. Let $\Omega \subset \mathbb{R}^d$ be a continuous region—such as a 2D plane or abstract cognitive substrate—on which these fields are defined. Each field encodes a biologically or functionally meaningful quantity at every point $\mathbf{x} \in \Omega$. We denote the full field ensemble as:
+      </p>
+      <div class="equation-box">
+        $$\Theta(\mathbf{x}) = \{\phi_1(\mathbf{x}), \ldots, \phi_n(\mathbf{x})\}$$
+      </div>
+      <p>
+        The key GVFT fields include:
+      </p>
+      <ul>
+        <li><strong>Connectivity Flow</strong> ($\phi_1 = \mathbf{F}(\mathbf{x}) \in \mathbb{R}^d$): A vector field defining preferred directions of information flow, analogous to axon guidance gradients.</li>
+        <li><strong>Synaptic Strength</strong> ($\phi_2 = W(\mathbf{x}) \in \mathbb{R}$): A scalar field encoding potential connection strength at each point.</li>
+        <li><strong>Axonal Delay</strong> ($\phi_3 = \tau(\mathbf{x}) \in \mathbb{R}^+$): A scalar field representing signal propagation delay, influenced by spatial distance or conduction velocity.</li>
+        <li><strong>Cell Type Logits</strong> ($\phi_4 = C(\mathbf{x}) \in \mathbb{R}^K$): A vector-valued field encoding local preference over $K$ possible neuron types (e.g., excitatory, inhibitory).</li>
+        <li><strong>Neuromodulatory Field</strong> ($\phi_5 = \eta(\mathbf{x}, t) \in \mathbb{R}$): A time-evolving field representing diffuse chemical signals like dopamine or serotonin.</li>
+      </ul>
+      <p>
+        Each field $\phi_k$ can be represented by structured function classes suited to its role. For spatially stationary fields, we use kernel expansions (e.g., radial basis functions or Gaussian Processes):
+      </p>
+      <div class="equation-box">
+        $$\phi_k(\mathbf{x}) = \sum_{i=1}^{N_k} w_{k,i} \cdot k_{\theta_k}(\mathbf{x}, \mathbf{x}_i)$$
+      </div>
+      <p>
+        where $k_{\theta_k}$ is a kernel function and $\{\mathbf{x}_i\}$ are inducing points. For dynamic fields like $\eta(\mathbf{x}, t)$, we employ Fourier Neural Operators (FNOs) to capture long-range spatiotemporal dependencies:
+      </p>
+      <div class="equation-box">
+        $$\phi_k(\mathbf{x}, t) = \mathcal{F}^{-1}\left( \sum_{|\omega| < K} R_\omega(\mathcal{F}(\phi_k)(\omega, t)) \right)$$
+      </div>
+    
+       <h3>1.1 Interpreting the Fields</h3>
+      <p>
+        GVFT fields can be interpreted biologically, computationally, or both:
+      </p>
+      <ul>
+        <li><strong>Flow Field</strong>: Guides where and how connections form, promoting structured wiring patterns.</li>
+        <li><strong>Strength Field</strong>: Determines how likely or strong a connection will be, often modulated by flow intensity.</li>
+        <li><strong>Delay Field</strong>: Encodes transmission latencies critical for timing-sensitive computations.</li>
+        <li><strong>Cell Type Field</strong>: Supports spatial differentiation of module function or specialization.</li>
+        <li><strong>Modulatory Field</strong>: Acts as a global or local influence on plasticity, attention, or learning rate.</li>
+      </ul>
+      <h3>1.2 Field Interactions</h3>
+      <p>
+        These fields are not independent. We model interactions through soft coupling terms that enforce consistency or biologically inspired correlations. For example, synaptic strength may partially depend on local flow magnitude:
+      </p>
+      <div class="equation-box">
+        $$W(\mathbf{x}) = \beta_W \cdot \sigma(\|\mathbf{F}(\mathbf{x})\|) + (1 - \beta_W) \cdot W_{\text{base}}(\mathbf{x})$$
+      </div>
+      <p>
+        where $\sigma$ is a sigmoid function and $\beta_W \in [0, 1]$ controls coupling strength. Similarly, cell type logits can be shaped by flow direction:
+      </p>
+      <div class="equation-box">
+        $$C(\mathbf{x}) = C_{\text{base}}(\mathbf{x}) + \gamma_C \cdot \mathcal{T}(\mathbf{F}(\mathbf{x}))$$
+      </div>
+      <p>
+        where $\mathcal{T}$ is a learnable transformation and $\gamma_C$ controls its influence. These couplings allow the system to capture the structured dependencies seen in biological development while remaining differentiable and modular.
+      </p>
     </section>
     
     <section>
-        <h2>2. Mathematical Foundations</h2>
-        
-        <h3>2.1 Field Ensemble and Regularization</h3>
-        <p>
-            Standard smoothness regularization fails to capture the anisotropic nature of biological fields. We introduce a spatially-aware regularization framework that respects the manifold structure of $\Omega$. Let $\Theta = \{\phi_k\}_{k=1}^n$. We define the total field regularization energy:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{reg}} = \sum_{k=1}^n \lambda_k \int_{\Omega} \nabla_\mathcal{M} \phi_k(\mathbf{x})^T M_k(\mathbf{x}) \nabla_\mathcal{M} \phi_k(\mathbf{x}) \, dV_g$$
-        </div>
-        <p>
-            where $\nabla_\mathcal{M}$ is the covariant derivative on the manifold $\Omega$, $M_k(\mathbf{x})$ is a spatially-varying metric tensor that captures anisotropic smoothness properties, and $dV_g$ is the volume element induced by metric $g$. For the connectivity flow field $\mathbf{F}$, we use a divergence regularization term to enforce conservation:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{div}} = \lambda_{\text{div}} \int_{\Omega} \|\nabla_\mathcal{M} \cdot \mathbf{F}(\mathbf{x})\|^2 \, dV_g$$
-        </div>
-        <p>
-            For time-dependent fields like $\eta(\mathbf{x},t)$, we add a PDE-based residual penalty:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{dyn}} = \lambda_{\text{dyn}} \int_{\Omega} \|\partial_t \eta - \mathcal{D}(\eta)\|^2 \, dV_g$$
-        </div>
-        <p>
-            where $\mathcal{D}$ is the spatiotemporal dynamical operator defined in Section 2.3.
-        </p>
-        <p>
-            We add cross-field consistency constraints to enforce biologically meaningful relationships:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{cross}} = \sum_{k,l} \lambda_{k,l} \int_{\Omega} \|\phi_k(\mathbf{x}) - g_{k,l}(\phi_l(\mathbf{x}))\|^2 \, dV_g$$
-        </div>
-        <p>
-            where $g_{k,l}$ are learned or biologically-derived coupling functions.
-        </p>
-        
-        <h3>2.2 Structured Dimensionality Reduction for Field Encoding</h3>
-        <p>
-            To reduce the complexity of high-dimensional biological or synthetic data while preserving essential structural features, we define a dimensionality reduction mapping $\Phi: \mathcal{B}(\mathbf{x}) \to \Theta(\mathbf{x})$. Here, $\mathcal{B}(\mathbf{x})$ denotes a collection of source fields encoding diverse properties (e.g., anatomical priors, empirical measurements, or developmental signals), and $\Theta(\mathbf{x})$ is the compressed representation used for GVFT instantiation.
-        </p>
-        <p>
-            Let $\mathcal{B}(\mathbf{x}) = \{f_1(\mathbf{x}), \ldots, f_m(\mathbf{x})\}$ be a set of $m$ spatially distributed input features defined over a domain $\Omega$. We model the mapping $\Phi$ using a neural operator architecture that respects spatial locality and inter-field dependencies:
-        </p>
-        <div class="equation-box">
-            $$\Theta(\mathbf{x}) = \Phi(\mathcal{B}(\mathbf{x})) = \mathcal{D}_\theta(\mathcal{E}_\phi(\mathcal{B}(\mathbf{x})))$$
-        </div>
-        <p>
-            where $\mathcal{E}_\phi$ is a spatially aware encoder and $\mathcal{D}_\theta$ is a corresponding decoder. These may be implemented using convolutional layers, graph operators, attention mechanisms, or other architectures suitable for preserving locality and continuity in the learned field representations.
-        </p>
-        
-        <h4>2.2.1 Loss Formulation for Structure-Preserving Compression</h4>
-        <p>
-            We train $\Phi$ to minimize a composite loss that captures three essential goals: accurate reconstruction of input fields, preservation of topological structure, and retention of task-relevant functional features.
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{encode}} = \mathcal{L}_{\text{recon}} + \lambda_{\text{topo}} \mathcal{L}_{\text{topo}} + \lambda_{\text{func}} \mathcal{L}_{\text{func}}$$
-        </div>
-        <p>
-            The reconstruction loss enforces pointwise fidelity:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{recon}} = \mathbb{E}_{\mathbf{x} \sim \Omega} \left[ \|\mathcal{B}(\mathbf{x}) - \Psi(\Phi(\mathcal{B}(\mathbf{x})))\|_2^2 \right]$$
-        </div>
-        <p>
-            The topological loss encourages the preservation of global structural features, quantified using persistent homology:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{topo}} = d_{\text{PH}}(\mathcal{B}, \Psi(\Phi(\mathcal{B})))$$
-        </div>
-        <p>
-            where $d_{\text{PH}}$ denotes the bottleneck distance between persistence diagrams. The functional loss ensures that critical properties relevant to downstream architectural behavior are preserved:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{func}} = \|Q(\mathcal{B}) - Q(\Psi(\Phi(\mathcal{B})))\|_2^2$$
-        </div>
-        <p>
-            where $Q$ is a task- or structure-specific feature extractor (e.g., modularity, network centrality, effective connectivity).
-        </p>
-        
-        <h4>2.2.2 Theoretical Properties of Compression</h4>
-        <p>
-            Suppose the source fields $\mathcal{B}(\mathbf{x})$ lie on a low-dimensional manifold $\mathcal{M} \subset \mathbb{R}^m$ with intrinsic dimension $d_\mathcal{M}$. By Whitney’s embedding theorem and results from manifold learning, the mapping $\Phi$ can preserve local structure provided:
-        </p>
-        <div class="equation-box">
-            $$n \geq 2d_\mathcal{M} + 1$$
-        </div>
-        <p>
-            Moreover, if $\Phi$ and its approximate inverse $\Psi$ are Lipschitz continuous, we can bound reconstruction error as:
-        </p>
-        <div class="equation-box">
-            $$\|\mathcal{B} - \Psi(\Phi(\mathcal{B}))\|_{\mathcal{L}^2(\Omega)} \leq C \cdot d_\mathcal{M} \cdot \epsilon$$
-        </div>
-        <p>
-            where $C$ depends on the Lipschitz constants and $\epsilon$ quantifies manifold approximation error. This supports the use of field-based compression in GVFT as a principled method for reducing biological or functional complexity while preserving critical generative structure.
-        </p>
-        
-        
-        <h3>2.3 Time Evolution of Neuromodulatory Fields</h3>
-        <p>
-            Standard linear diffusion models fail to capture the rich dynamics of neuromodulatory systems. We introduce a nonlinear reaction-diffusion model for $\eta(\mathbf{x}, t)$:
-        </p>
-        <div class="equation-box">
-            $$\partial_t \eta(\mathbf{x}, t) = D_\eta \nabla_\mathcal{M}^2 \eta(\mathbf{x}, t) - \lambda_\eta \eta(\mathbf{x}, t) + f(\eta, \mathbf{x}, t) + S_\eta(\mathbf{x}, t)$$
-        </div>
-        <p>
-            where:
-        </p>
-        <ul>
-            <li>$D_\eta > 0$: diffusion tensor (spatially varying to capture anisotropic spread)</li>
-            <li>$\lambda_\eta > 0$: decay rate modeling enzymatic breakdown</li>
-            <li>$f(\eta, \mathbf{x}, t) = \alpha \cdot \frac{\eta^2}{1 + \eta^2} - \beta \cdot \eta^3$: nonlinear reaction term modeling receptor saturation and feedback</li>
-            <li>$S_\eta(\mathbf{x}, t) = \sum_{i} a_i(t) \cdot \delta_{\sigma}(\mathbf{x} - \mathbf{x}_i)$: source term modeling localized release events</li>
-        </ul>
-        <p>
-            Here, $a_i(t)$ represents the activity of neural element $i$ at position $\mathbf{x}_i$, and $\delta_{\sigma}$ is a smoothed delta function with width $\sigma$.
-        </p>
-        <p>
-            For numerical solution, we employ spectral methods or physics-informed neural networks (PINNs) rather than basic finite differences:
-        </p>
-        <div class="equation-box">
-            $$\eta(\mathbf{x}, t) \approx \mathcal{N}_\theta(\mathbf{x}, t)$$
-        </div>
-        <p>
-            where $\mathcal{N}_\theta$ is a neural network trained to satisfy the PDE:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{PINN}} = \|\partial_t \mathcal{N}_\theta - \mathcal{D}(\mathcal{N}_\theta)\|_{\mathcal{L}^2(\Omega \times [0,T])}^2$$
-        </div>
-        <p>
-            with $\mathcal{D}$ the differential operator corresponding to our reaction-diffusion equation.
-        </p>
+      <h2>2. Mathematical Foundations</h2>
+      <h3>2.1 Field Ensemble and Regularization</h3>
+      <p>
+        We define a family of $n$ fields $\Theta = \{\phi_k\}_{k=1}^n$, where each $\phi_k: \Omega \to \mathbb{R}^{m_k}$ is a continuous function over a Euclidean domain $\Omega \subset \mathbb{R}^d$. These fields encode properties like connectivity flow, synaptic strength, or neuromodulation. To ensure smoothness and biological plausibility, we apply a regularization loss for each field:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{reg}} = \sum_{k=1}^n \lambda_k \int_{\Omega} \|\nabla \phi_k(\mathbf{x})\|^2 \, d\mathbf{x}$$
+      </div>
+      <p>
+        where $\nabla$ is the standard gradient operator in $\mathbb{R}^d$, $\lambda_k > 0$ are weighting coefficients, and the integral encourages spatial smoothness. For fields representing directional flows (e.g., connectivity flow $\mathbf{F}$), we add a divergence penalty to promote conservation:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{div}} = \lambda_{\text{div}} \int_{\Omega} \|\nabla \cdot \mathbf{F}(\mathbf{x})\|^2 \, d\mathbf{x}$$
+      </div>
+      <p>
+        To enforce interactions between fields (e.g., synaptic strength depending on connectivity), we use a cross-field consistency loss:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{cross}} = \sum_{k \neq l} \lambda_{k,l} \int_{\Omega} \|\phi_k(\mathbf{x}) - g_{k,l}(\phi_l(\mathbf{x}))\|^2 \, d\mathbf{x}$$
+      </div>
+      <p>
+        where $g_{k,l}: \mathbb{R}^{m_l} \to \mathbb{R}^{m_k}$ are simple learned functions (e.g., MLPs) that model biological or functional relationships, and $\lambda_{k,l} \geq 0$ control coupling strength.
+      </p>
+      <h3>2.2 Field Encoding and Compression</h3>
+      <p>
+        To handle high-dimensional input data (e.g., biological measurements or priors), we compress a set of source fields $\mathcal{B}(\mathbf{x}) = \{f_1(\mathbf{x}), \ldots, f_m(\mathbf{x})\}$ into the GVFT fields $\Theta(\mathbf{x})$ using a mapping $\Phi: \mathcal{B}(\mathbf{x}) \to \Theta(\mathbf{x})$. We implement $\Phi$ as a neural network with an encoder-decoder structure:
+      </p>
+      <div class="equation-box">
+        $$\Theta(\mathbf{x}) = \Phi(\mathcal{B}(\mathbf{x})) = \mathcal{D}_\theta(\mathcal{E}_\phi(\mathcal{B}(\mathbf{x})))$$
+      </div>
+      <p>
+        where $\mathcal{E}_\phi$ is a convolutional encoder preserving spatial locality, and $\mathcal{D}_\theta$ is a decoder producing the $n$ fields. The compression is trained to minimize:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{encode}} = \mathcal{L}_{\text{recon}} + \lambda_{\text{func}} \mathcal{L}_{\text{func}}$$
+      </div>
+      <p>
+        The reconstruction loss ensures fidelity to the input:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{recon}} = \mathbb{E}_{\mathbf{x} \sim \Omega} \left[ \|\mathcal{B}(\mathbf{x}) - \Psi(\Phi(\mathcal{B}(\mathbf{x})))\|_2^2 \right]$$
+      </div>
+      <p>
+        where $\Psi$ is an approximate inverse mapping. The functional loss preserves task-relevant features:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{func}} = \mathbb{E}_{\mathbf{x} \sim \Omega} \left[ \|Q(\mathcal{B}(\mathbf{x})) - Q(\Psi(\Phi(\mathcal{B}(\mathbf{x}))))\|_2^2 \right]$$
+      </div>
+      <p>
+        where $Q$ extracts features like modularity or connectivity strength, implemented as a lightweight neural network or analytical function.
+      </p>
+      <h3>2.3 Time Evolution of Dynamic Fields</h3>
+      <p>
+        For time-dependent fields (e.g., neuromodulatory field $\eta(\mathbf{x}, t)$), we model evolution using a simple linear diffusion equation:
+      </p>
+      <div class="equation-box">
+        $$\partial_t \eta(\mathbf{x}, t) = D_\eta \nabla^2 \eta(\mathbf{x}, t) - \lambda_\eta \eta(\mathbf{x}, t) + S_\eta(\mathbf{x}, t)$$
+      </div>
+      <p>
+        where $D_\eta > 0$ is a diffusion coefficient, $\lambda_\eta > 0$ is a decay rate, and $S_\eta(\mathbf{x}, t) = \sum_i a_i(t) \cdot \exp(-\|\mathbf{x} - \mathbf{x}_i\|^2 / \sigma^2)$ is a source term modeling localized activity at positions $\mathbf{x}_i$. We solve this numerically using finite differences or train a neural network $\eta(\mathbf{x}, t) \approx \mathcal{N}_\theta(\mathbf{x}, t)$ to minimize:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{dyn}} = \mathbb{E}_{\mathbf{x}, t} \left[ \|\partial_t \mathcal{N}_\theta(\mathbf{x}, t) - D_\eta \nabla^2 \mathcal{N}_\theta(\mathbf{x}, t) + \lambda_\eta \mathcal{N}_\theta(\mathbf{x}, t) - S_\eta(\mathbf{x}, t)\|^2 \right]$$
+      </div>
+      <p>
+        This applies to any time-dependent field, ensuring generality across $n$ fields.
+      </p>
     </section>
     
     <section>
       <h2>3. Module Instantiation and Connectivity Inference</h2>
       <p>
-        To derive discrete modular structures from continuous field representations, we introduce a probabilistic sampling scheme for module placement. Rather than applying hard thresholds to scalar field values, which can lead to brittle or non-generalizable behavior, we define a spatial likelihood function over the domain:
+        To generate discrete modules from continuous fields, we sample module positions using a probabilistic likelihood based on two key fields (e.g., connectivity flow $\mathbf{F}$ and synaptic strength $W$):
       </p>
       <div class="equation-box">
-          $$p(\text{module at } \mathbf{x}) = \sigma\left(\beta \cdot \|\mathbf{F}(\mathbf{x})\| + \gamma \cdot W(\mathbf{x}) - \theta_0\right)$$
+        $$p(\text{module at } \mathbf{x}) = \sigma(\beta \cdot \|\mathbf{F}(\mathbf{x})\| + \gamma \cdot W(\mathbf{x}))$$
       </div>
       <p>
-        where $\sigma$ is the sigmoid function, and $\beta$, $\gamma$, and $\theta_0$ are tunable parameters. This distribution captures the joint influence of connectivity flow magnitude and local synaptic strength on the likelihood of instantiating a module at position $\mathbf{x}$.
+        where $\sigma$ is the sigmoid function, and $\beta, \gamma > 0$ are learned scalars. We sample $N$ module centers $\{\mathbf{r}_i\}_{i=1}^N$ from this distribution using rejection sampling or a grid-based approach, with $N$ set by a hyperparameter or task requirements.
       </p>
       <p>
-        Once a set of module centers $\{\mathbf{r}_i\}$ is sampled, we derive inter-module connectivity by solving a constrained variational problem. The strength of each connection $w_{ij}$ between module $i$ and $j$ is optimized to maximize directional alignment and resource efficiency:
+        Inter-module connectivity weights $w_{ij}$ are computed to align with the local flow field:
       </p>
       <div class="equation-box">
-          $$w_{ij} = \arg\max_{w} \left[ \rho(\mathbf{r}_i, \mathbf{r}_j) \cdot w - \frac{\lambda}{2} w^2 \right]$$
+        $$w_{ij} = \min\left(\max\left(\frac{\rho(\mathbf{r}_i, \mathbf{r}_j)}{\lambda}, 0\right), w_{\max}\right)$$
       </div>
       <p>
-        subject to:
+        where:
       </p>
       <div class="equation-box">
-          $$0 \leq w \leq w_{\max}(\mathbf{r}_i)$$
+        $$\rho(\mathbf{r}_i, \mathbf{r}_j) = \max\left(0, \frac{(\mathbf{r}_j - \mathbf{r}_i) \cdot \mathbf{F}(\mathbf{r}_i)}{\|\mathbf{r}_j - \mathbf{r}_i\| \cdot \|\mathbf{F}(\mathbf{r}_i)\|}\right) \cdot W(\mathbf{r}_i)$$
       </div>
       <p>
-        where $\rho(\mathbf{r}_i, \mathbf{r}_j)$ quantifies the directional and scalar compatibility of the local field at $\mathbf{r}_i$ with a target $\mathbf{r}_j$:
+        $\lambda > 0$ controls regularization, and $w_{\max}$ is a global maximum weight. Connection delays are derived from spatial distances:
       </p>
       <div class="equation-box">
-          $$\rho(\mathbf{r}_i, \mathbf{r}_j) = \max(0, \hat{\mathbf{d}}_{ij} \cdot \hat{\mathbf{F}}_i) \cdot \|\mathbf{F}(\mathbf{r}_i)\| \cdot W(\mathbf{r}_i)$$
-      </div>
-      <div class="equation-box">
-          $$\hat{\mathbf{d}}_{ij} = \frac{\mathbf{r}_j - \mathbf{r}_i}{\|\mathbf{r}_j - \mathbf{r}_i\|}, \quad \hat{\mathbf{F}}_i = \frac{\mathbf{F}(\mathbf{r}_i)}{\|\mathbf{F}(\mathbf{r}_i)\|}$$
+        $$\tau_{ij} = \kappa \cdot \|\mathbf{r}_j - \mathbf{r}_i\|$$
       </div>
       <p>
-        This yields a closed-form solution:
+        where $\kappa > 0$ is a conduction velocity. To model variability, weights and delays are sampled stochastically:
       </p>
       <div class="equation-box">
-          $$w_{ij} = \min\left(\max\left(\frac{\rho(\mathbf{r}_i, \mathbf{r}_j)}{\lambda}, 0\right), w_{\max}(\mathbf{r}_i)\right)$$
+        $$w_{ij}^{\text{actual}} \sim \mathcal{N}(w_{ij}, \sigma_w^2), \quad \tau_{ij}^{\text{actual}} \sim \mathcal{N}(\tau_{ij}, \sigma_\tau^2)$$
       </div>
       <p>
-        To reflect uncertainty and local developmental variability, we model the actual connection strength as a stochastic sample:
-      </p>
-      <div class="equation-box">
-          $$w_{ij}^{\text{actual}} \sim \mathcal{N}(w_{ij}, \sigma^2_w(\mathbf{r}_i))$$
-      </div>
-      <p>
-        where $\sigma^2_w(\mathbf{r}_i)$ is a spatially varying noise scale. Synaptic delay between modules is similarly derived from spatial geometry:
-      </p>
-      <div class="equation-box">
-          $$\tau_{ij} = \tau_{\text{base}}(\mathbf{r}_i) + \kappa \cdot \|\mathbf{r}_j - \mathbf{r}_i\|$$
-      </div>
-      <div class="equation-box">
-          $$\tau_{ij}^{\text{actual}} \sim \mathcal{N}(\tau_{ij}, \sigma^2_\tau(\mathbf{r}_i))$$
-      </div>
-      <p>
-        where $\kappa$ denotes conduction velocity and $\tau_{\text{base}}$ encodes intrinsic delay offsets. This framework supports robust and spatially coherent instantiation of modular networks from continuous fields, incorporating both directional flow and stochastic variation.
+        where $\sigma_w^2, \sigma_\tau^2$ are fixed or spatially varying noise variances. This process generalizes to any field subset influencing module placement or connectivity.
       </p>
     </section>
     
-    
     <section>
-        <h2>4. Variational Field Optimization</h2>
-        <p>
-            We frame field optimization as a variational problem over a composite action functional:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{S}(\theta) = \mathcal{L}_{\text{task}}(\theta) + \mathcal{L}_{\text{reg}}(\theta) + \mathcal{L}_{\text{cross}}(\theta) + \mathcal{L}_{\text{dyn}}(\theta)$$
-        </div>
-        <p>
-            where $\mathcal{L}_{\text{task}}$ evaluates the performance of the instantiated architecture:
-        </p>
-        <div class="equation-box">
-            $$\mathcal{L}_{\text{task}}(\theta) = \mathbb{E}_{(\mathbf{x}, y) \sim \mathcal{D}} \left[ \ell(f_{\Theta(\theta)}(\mathbf{x}), y) \right]$$
-        </div>
-        <p>
-            Here, $f_{\Theta(\theta)}$ represents the neural network induced by the fields $\Theta$ parameterized by $\theta$, and $\ell$ is an appropriate loss function
-    
-    <section>
-        <h2>5. Complexity, Discretization, and Scaling</h2>
-        <p>
-            Field evaluations: $\mathcal{O}(N S d)$ complexity. Graph construction: dense $\mathcal{O}(N^2 d)$ or sparse $\mathcal{O}(Nkd)$. Numerical regularization via sampled integrals:
-        </p>
-        <div class="equation-box">
-            $$\int_{\Omega} \|\nabla \phi(\mathbf{x})\|^2 d\mathbf{x} \approx \frac{|\Omega|}{S} \sum_{s=1}^S \|\nabla \phi(x_s)\|^2$$
-        </div>
+      <h2>4. Variational Field Optimization</h2>
+      <p>
+        We optimize the field parameters $\theta$ (e.g., neural network weights defining $\Theta$) using a composite loss:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{S}(\theta) = \mathcal{L}_{\text{task}}(\theta) + \mathcal{L}_{\text{reg}}(\theta) + \mathcal{L}_{\text{cross}}(\theta) + \mathcal{L}_{\text{dyn}}(\theta)$$
+      </div>
+      <p>
+        The task loss evaluates the performance of the instantiated network:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{task}}(\theta) = \mathbb{E}_{(\mathbf{x}, y) \sim \mathcal{D}} \left[ \ell(f_{\Theta(\theta)}(\mathbf{x}), y) \right]$$
+      </div>
+      <p>
+        where $f_{\Theta(\theta)}$ is the neural network derived from $\Theta$, and $\ell$ is a task-specific loss (e.g., cross-entropy). The regularization, cross-field, and dynamic losses are defined above, with weights $\lambda_k, \lambda_{k,l}, \lambda_{\text{dyn}}$ tuned via grid search or gradient-based methods.
+      </p>
     </section>
     
     <section>
-        <h2>6. Bidirectional Biological Modeling</h2>
-        
-        <h3>6.1 Biological Connectome to GVFT</h3>
-        <p>
-            Given connectome $A^{bio}_{ij}$, optimize:
-        </p>
-        <div class="equation-box">
-            $$\min_\theta \sum_{i,j} \left(A^{bio}_{ij} - w_{ij}(\theta)\right)^2$$
-        </div>
-        
-        <h3>6.2 GVFT to Neural Architecture</h3>
-        <p>
-            Modules $V = \{M_i\}$, edges $E = \{w_{ij}, \tau_{ij}\}$.
-        </p>
+      <h2>5. Complexity, Discretization, and Scaling</h2>
+      <p>
+        Field evaluations on a grid with $S$ points in $d$-dimensions have complexity $\mathcal{O}(N S d)$, where $N$ is the number of fields. Graph construction for $M$ modules is $\mathcal{O}(M^2 d)$ for dense connections or $\mathcal{O}(M k d)$ for sparse (k-nearest neighbors). Regularization integrals are approximated via Monte Carlo sampling:
+      </p>
+      <div class="equation-box">
+        $$\int_{\Omega} \|\nabla \phi(\mathbf{x})\|^2 d\mathbf{x} \approx \frac{|\Omega|}{S} \sum_{s=1}^S \|\nabla \phi(\mathbf{x}_s)\|^2$$
+      </div>
     </section>
     
     <section>
-        <h2>7. Future Directions</h2>
-        <ul>
-            <li>Embedding GVFT in differentiable simulators</li>
-            <li>Fitting GVFT to fly brain connectomes</li>
-            <li>Exploring renormalization-inspired field scaling</li>
-            <li>Extending to multi-agent interacting field systems</li>
-        </ul>
+      <h2>6. Bidirectional Biological Modeling</h2>
+      <h3>6.1 Biological Connectome to GVFT</h3>
+      <p>
+        Given a biological connectome adjacency matrix $A^{bio}_{ij}$, we optimize field parameters to match the inferred connectivity:
+      </p>
+      <div class="equation-box">
+        $$\min_\theta \sum_{i,j} \left( A^{bio}_{ij} - w_{ij}(\theta) \right)^2$$
+      </div>
+      <h3>6.2 GVFT to Neural Architecture</h3>
+      <p>
+        From fields $\Theta$, we generate a network with modules $V = \{M_i\}$ and edges $E = \{w_{ij}, \tau_{ij}\}$, as described in Section 3.
+      </p>
+    </section>
+    
+    <section>
+      <h2>7. Future Directions</h2>
+      <ul>
+        <li>Embedding GVFT in differentiable simulators</li>
+        <li>Fitting GVFT to fly brain connectomes</li>
+        <li>Exploring renormalization-inspired field scaling</li>
+        <li>Extending to multi-agent interacting field systems</li>
+      </ul>
     </section>
     
     <section class="conclusion">
-        <h2>Conclusion</h2>
-        <p>
-            Gestalt Vector Field Theory provides a mathematically rigorous, biologically plausible, and scalable framework for modular cognitive system design. It opens new paths toward evolvable and interpretable artificial intelligence.
-        </p>
+      <h2>Conclusion</h2>
+      <p>
+        Gestalt Vector Field Theory provides a mathematically rigorous, biologically plausible, and scalable framework for modular cognitive system design. It opens new paths toward evolvable and interpretable artificial intelligence.
+      </p>
     </section>
-
+    
     <section class="references">
       <h2>References</h2>
       <ul>
-          <li>Lindenmayer, A. (1968). Mathematical models for cellular interactions in development I. Filaments with one-sided inputs. <i>Journal of Theoretical Biology</i>, 18(3), 280–299.</li>
-          <li>Kitano, H. (1990). Designing neural networks using genetic algorithms with graph generation system. <i>Complex Systems</i>, 4(4), 461–476.</li>
-          <li>Stanley, K. O., & Miikkulainen, R. (2002). Evolving neural networks through augmenting topologies. <i>Evolutionary Computation</i>, 10(2), 99–127. (Introduces NEAT and CPPNs)</li>
-          <li>Dellaert, F., & Beer, R. D. (1994). Toward an evolvable model of development for autonomous agent synthesis. <i>Artificial Life IV</i>, 246–257.</li>
-          <li>Amari, S. (1977). Dynamics of pattern formation in lateral-inhibition type neural fields. <i>Biological Cybernetics</i>, 27(2), 77–87.</li>
-          <li>Liu, H., Simonyan, K., & Yang, Y. (2019). DARTS: Differentiable architecture search. <i>International Conference on Learning Representations (ICLR)</i>.</li>
-          <li>Pham, H., Guan, M. Y., Zoph, B., Le, Q. V., & Dean, J. (2018). Efficient neural architecture search via parameter sharing. <i>International Conference on Machine Learning (ICML)</i>, 4092–4101. (Introduces ENAS)</li>
+        <li>Lindenmayer, A. (1968). Mathematical models for cellular interactions in development I. Filaments with one-sided inputs. <i>Journal of Theoretical Biology</i>, 18(3), 280–299.</li>
+        <li>Kitano, H. (1990). Designing neural networks using genetic algorithms with graph generation system. <i>Complex Systems</i>, 4(4), 461–476.</li>
+        <li>Stanley, K. O., & Miikkulainen, R. (2002). Evolving neural networks through augmenting topologies. <i>Evolutionary Computation</i>, 10(2), 99–127. (Introduces NEAT and CPPNs)</li>
+        <li>Dellaert, F., & Beer, R. D. (1994). Toward an evolvable model of development for autonomous agent synthesis. <i>Artificial Life IV</i>, 246–257.</li>
+        <li>Amari, S. (1977). Dynamics of pattern formation in lateral-inhibition type neural fields. <i>Biological Cybernetics</i>, 27(2), 77–87.</li>
+        <li>Liu, H., Simonyan, K., & Yang, Y. (2019). DARTS: Differentiable architecture search. <i>International Conference on Learning Representations (ICLR)</i>.</li>
+        <li>Pham, H., Guan, M. Y., Zoph, B., Le, Q. V., & Dean, J. (2018). Efficient neural architecture search via parameter sharing. <i>International Conference on Machine Learning (ICML)</i>, 4092–4101. (Introduces ENAS)</li>
       </ul>
     </section>
     
