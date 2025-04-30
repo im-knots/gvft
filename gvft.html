@@ -197,19 +197,22 @@
     <section>
       <h2>Overview and Motivation</h2>
       <p>
-        Most neural networks today are designed as fixed graphs—collections of layers or blocks connected in predefined ways. Even when techniques like Neural Architecture Search (NAS), hypernetworks, or Compositional Pattern Producing Networks (CPPNs) are used to automate or diversify architecture design, they still operate on static or discrete graph representations. These approaches often struggle to capture the kind of modularity, adaptability, and developmental structure observed in biological brains.
+        Neural networks are typically engineered as fixed graphs—collections of layers or modules connected in predefined ways. Even advanced techniques like Neural Architecture Search (NAS), hypernetworks, or Compositional Pattern Producing Networks (CPPNs) operate within discrete design spaces. These systems often lack the flexibility, compositionality, and developmental dynamics seen in biological cognition.
       </p>
       <p>
-        Human cognition emerges not from a monolithic model, but from many interacting subsystems—modules for perception, memory, language, and planning—that coordinate dynamically across space and time. These modules develop within a biological substrate that imposes spatial constraints, delays, and context-dependent modulation. Current neural architecture methods rarely model the <em>interactions between modules</em> explicitly, let alone treat those interactions as the primary object of design.
+        Human cognition is modular by nature. Perception, language, memory, and planning arise from specialized systems that interact across space and time. These interactions are not hard-coded; they emerge within a spatially constrained biological substrate shaped by delays, gradients, and modulatory chemistry. Yet current machine learning methods rarely treat <em>inter-module interaction</em> as a first-class object of design.
       </p>
       <p>
-        Genomic Vector Field Theory (GVFT) addresses this gap by introducing a continuous, field-based framework for specifying how modules in a neural architecture should interact. Rather than constructing entire models, GVFT defines smooth vector and scalar fields over a spatial domain that encode directional connectivity, synaptic strength, communication delays, cell-type preferences, and modulatory influences. These fields serve as a generative blueprint: a compact, differentiable representation of architectural structure focused specifically on inter-module relationships.
+        <strong>Genomic Vector Field Theory (GVFT)</strong> introduces a meta-architectural framework that addresses this gap. Rather than defining a network architecture directly, GVFT specifies a collection of smooth vector and scalar fields over a spatial substrate. These fields encode connectivity flows, synaptic strengths, axonal delays, cell-type preferences, and neuromodulatory influences. The field ensemble acts as a <em>genomic code</em>: a compact, continuous representation from which full network topologies can be instantiated.
       </p>
       <p>
-        GVFT acts as a <strong>meta-architectural layer</strong>—a higher-order design space from which diverse modular architectures can be instantiated and evolved. By encoding inductive biases inspired by biology and physics, it enables spatially grounded, interpretable, and evolvable designs. Unlike prior approaches, GVFT provides a structured way to explore how cognitive capabilities arise from the configuration and coupling of modules, not just from the parameters within them.
+        The term “genomic” here is metaphorical. Just as a biological genome encodes the rules for development rather than specifying the organism explicitly, GVFT encodes rules for how modular architectures emerge. These rules are expressed as continuous, differentiable fields—learnable, evolvable, and amenable to analysis. The resulting architectures are shaped not only by task performance but by spatial, functional, and topological constraints derived from the fields themselves.
       </p>
-    </section>
-
+      <p>
+        GVFT thus provides a structured design space—<em>a higher-order substrate for architectural evolution</em>—grounded in both mathematical formalism and biologically inspired inductive biases. It enables us to ask new questions: not just what architecture performs best, but what field configurations give rise to particular cognitive affordances.
+      </p>
+    
+    
     <section>
       <h2>Comparison of GVFT with Prior Approaches</h2>
       <table>
@@ -359,66 +362,66 @@
             where $g_{k,l}$ are learned or biologically-derived coupling functions.
         </p>
         
-        <h3>2.2 Holographic Compression of Biological Complexity</h3>
+        <h3>2.2 Structured Dimensionality Reduction for Field Encoding</h3>
         <p>
-            We define holographic compression as a structured dimensionality reduction mapping $\Phi: \mathcal{B}(\mathbf{x}) \to \Theta(\mathbf{x})$ that preserves functional, spatial, and developmental relationships critical for system behavior.
+            To reduce the complexity of high-dimensional biological or synthetic data while preserving essential structural features, we define a dimensionality reduction mapping $\Phi: \mathcal{B}(\mathbf{x}) \to \Theta(\mathbf{x})$. Here, $\mathcal{B}(\mathbf{x})$ denotes a collection of source fields encoding diverse properties (e.g., anatomical priors, empirical measurements, or developmental signals), and $\Theta(\mathbf{x})$ is the compressed representation used for GVFT instantiation.
         </p>
         <p>
-            Let $\mathcal{B}(\mathbf{x}) = \{f_1(\mathbf{x}), \ldots, f_m(\mathbf{x})\}$ encode high-dimensional biological properties.
-            Instead of generic dimensionality reduction, we implement a structured neural operator:
+            Let $\mathcal{B}(\mathbf{x}) = \{f_1(\mathbf{x}), \ldots, f_m(\mathbf{x})\}$ be a set of $m$ spatially distributed input features defined over a domain $\Omega$. We model the mapping $\Phi$ using a neural operator architecture that respects spatial locality and inter-field dependencies:
         </p>
         <div class="equation-box">
             $$\Theta(\mathbf{x}) = \Phi(\mathcal{B}(\mathbf{x})) = \mathcal{D}_\theta(\mathcal{E}_\phi(\mathcal{B}(\mathbf{x})))$$
         </div>
         <p>
-            where $\mathcal{E}_\phi$ is an encoder with parameters $\phi$ and $\mathcal{D}_\theta$ is a decoder with parameters $\theta$. Unlike standard autoencoders, $\mathcal{E}_\phi$ and $\mathcal{D}_\theta$ are designed to respect the spatial structure of the fields through convolutional, attentional, or graph-based architectures.
+            where $\mathcal{E}_\phi$ is a spatially aware encoder and $\mathcal{D}_\theta$ is a corresponding decoder. These may be implemented using convolutional layers, graph operators, attention mechanisms, or other architectures suitable for preserving locality and continuity in the learned field representations.
         </p>
         
-        <h4>2.2.1 Formal Definition of Holographic Compression</h4>
+        <h4>2.2.1 Loss Formulation for Structure-Preserving Compression</h4>
         <p>
-            Given biological fields $\mathcal{B}: \Omega \to \mathbb{R}^m$ and compressed fields $\Theta: \Omega \to \mathbb{R}^n$ with $n \ll m$, we train $\Phi$ to minimize a composite loss function:
+            We train $\Phi$ to minimize a composite loss that captures three essential goals: accurate reconstruction of input fields, preservation of topological structure, and retention of task-relevant functional features.
         </p>
         <div class="equation-box">
-            $$\mathcal{L}_{\text{holo}} = \mathcal{L}_{\text{recon}} + \lambda_{\text{topo}} \mathcal{L}_{\text{topo}} + \lambda_{\text{func}} \mathcal{L}_{\text{func}}$$
+            $$\mathcal{L}_{\text{encode}} = \mathcal{L}_{\text{recon}} + \lambda_{\text{topo}} \mathcal{L}_{\text{topo}} + \lambda_{\text{func}} \mathcal{L}_{\text{func}}$$
         </div>
         <p>
-            The reconstruction loss captures point-wise accuracy:
+            The reconstruction loss enforces pointwise fidelity:
         </p>
         <div class="equation-box">
             $$\mathcal{L}_{\text{recon}} = \mathbb{E}_{\mathbf{x} \sim \Omega} \left[ \|\mathcal{B}(\mathbf{x}) - \Psi(\Phi(\mathcal{B}(\mathbf{x})))\|_2^2 \right]$$
         </div>
         <p>
-            The topological loss preserves critical structural features:
+            The topological loss encourages the preservation of global structural features, quantified using persistent homology:
         </p>
         <div class="equation-box">
             $$\mathcal{L}_{\text{topo}} = d_{\text{PH}}(\mathcal{B}, \Psi(\Phi(\mathcal{B})))$$
         </div>
         <p>
-            where $d_{\text{PH}}$ is the bottleneck distance between persistence diagrams, measuring topological similarity. Finally, the functional loss ensures that compressed fields preserve operational characteristics:
+            where $d_{\text{PH}}$ denotes the bottleneck distance between persistence diagrams. The functional loss ensures that critical properties relevant to downstream architectural behavior are preserved:
         </p>
         <div class="equation-box">
             $$\mathcal{L}_{\text{func}} = \|Q(\mathcal{B}) - Q(\Psi(\Phi(\mathcal{B})))\|_2^2$$
         </div>
         <p>
-            where $Q$ extracts functionally relevant metrics (e.g., modularity, centrality, pathway efficiency).
+            where $Q$ is a task- or structure-specific feature extractor (e.g., modularity, network centrality, effective connectivity).
         </p>
         
-        <h4>2.2.2 Theoretical Bounds on Compression Quality</h4>
+        <h4>2.2.2 Theoretical Properties of Compression</h4>
         <p>
-            Let $\mathcal{B}(\mathbf{x})$ lie on a low-dimensional manifold $\mathcal{M} \subset \mathbb{R}^m$ with intrinsic dimension $d_\mathcal{M}$. By Whitney's embedding theorem and results from manifold learning, $\Phi$ can preserve local topological structure provided:
+            Suppose the source fields $\mathcal{B}(\mathbf{x})$ lie on a low-dimensional manifold $\mathcal{M} \subset \mathbb{R}^m$ with intrinsic dimension $d_\mathcal{M}$. By Whitney’s embedding theorem and results from manifold learning, the mapping $\Phi$ can preserve local structure provided:
         </p>
         <div class="equation-box">
             $$n \geq 2d_\mathcal{M} + 1$$
         </div>
         <p>
-            Furthermore, the reconstruction error is bounded by:
+            Moreover, if $\Phi$ and its approximate inverse $\Psi$ are Lipschitz continuous, we can bound reconstruction error as:
         </p>
         <div class="equation-box">
             $$\|\mathcal{B} - \Psi(\Phi(\mathcal{B}))\|_{\mathcal{L}^2(\Omega)} \leq C \cdot d_\mathcal{M} \cdot \epsilon$$
         </div>
         <p>
-            where $C$ depends on the Lipschitz constants of $\Phi$ and $\Psi$, and $\epsilon$ quantifies the approximation error of the manifold. This bound guarantees that GVFT can faithfully represent arbitrary biological fields with controlled error, provided sufficient latent dimensions.
+            where $C$ depends on the Lipschitz constants and $\epsilon$ quantifies manifold approximation error. This supports the use of field-based compression in GVFT as a principled method for reducing biological or functional complexity while preserving critical generative structure.
         </p>
+        
         
         <h3>2.3 Time Evolution of Neuromodulatory Fields</h3>
         <p>
