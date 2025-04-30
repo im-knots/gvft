@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Genomic Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</title>
+    <title>gestalt Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</title>
     <script type="text/javascript">
         window.MathJax = {
             tex: {
@@ -180,7 +180,7 @@
 </head>
 <body>
     <header>
-        <h1 class="title">Genomic Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</h1>
+        <h1 class="title">Gestalt Vector Field Theory: Toward a Field-Theoretic Framework for Modular Cognition</h1>
         <div style="margin-top: 10px; font-size: 16px; color: #666;">
           By: Knots<br>
           April 30, 2025
@@ -190,9 +190,10 @@
     <div class="abstract-container">
       <div class="abstract-heading">Abstract</div>
       <p>
-        Genomic Vector Field Theory (GVFT) introduces a meta-architectural framework for specifying and evolving modular neural network architectures using continuous multi-field genotypes defined over a spatial substrate. Rather than designing models directly, GVFT encodes the structure and organization of model components—such as connectivity flows, synaptic strengths, axonal delays, cell types, and neuromodulatory influences—through smooth, differentiable fields inspired by principles of developmental biology. These fields act as generative blueprints from which complete model topologies can be instantiated. By applying holographic compression techniques, GVFT reduces high-dimensional biological or functional data into compact, learnable surface fields that capture essential architectural features. This framework enables interpretable, evolvable, and spatially grounded architectural design, offering a bridge between empirical neuroscience and synthetic cognition. We formalize GVFT through variational principles, model time-dependent field dynamics using reaction-diffusion equations, and provide practical schemes for numerical discretization and modular instantiation.
+        Gestalt Vector Field Theory (GVFT) introduces a meta-architectural framework for specifying and evolving modular neural network topologies using continuous multi-field representations defined over a spatial domain. Instead of encoding fixed graphs, GVFT defines smooth, differentiable fields—such as connectivity flows, synaptic strengths, conduction delays, cell-type preferences, and neuromodulatory gradients—that serve as generative blueprints from which full architectures emerge. These fields, inspired by biological development and dynamical systems, encode both structural and functional priors in a compact and evolvable form. We describe practical techniques for deriving modular networks from these fields, introduce variational optimization and constraint-based regularization, and model time-evolving influences through reaction-diffusion equations. GVFT offers a principled bridge between continuous field dynamics and discrete architectural instantiation, enabling new pathways for interpretable and adaptive cognitive systems.
       </p>
-    </div> 
+    </div>
+    
 
     <section>
       <h2>Overview and Motivation</h2>
@@ -200,17 +201,18 @@
         Neural networks are typically engineered as fixed graphs—collections of layers or modules connected in predefined ways. Even advanced techniques like Neural Architecture Search (NAS), hypernetworks, or Compositional Pattern Producing Networks (CPPNs) operate within discrete design spaces. These systems often lack the flexibility, compositionality, and developmental dynamics seen in biological cognition.
       </p>
       <p>
-        Human cognition is modular by nature. Perception, language, memory, and planning arise from specialized systems that interact across space and time. These interactions are not hard-coded; they emerge within a spatially constrained biological substrate shaped by delays, gradients, and modulatory chemistry. Yet current machine learning methods rarely treat <em>inter-module interaction</em> as a first-class object of design.
+        Human cognition is modular by nature. Perception, language, memory, and planning arise from specialized systems that interact across space and time. These interactions are not hand-coded; they develop within spatially constrained substrates shaped by gradients, delays, and modulatory chemistry. Yet contemporary machine learning rarely treats <em>inter-module interaction</em> as a first-class design target.
       </p>
       <p>
-        <strong>Genomic Vector Field Theory (GVFT)</strong> introduces a meta-architectural framework that addresses this gap. Rather than defining a network architecture directly, GVFT specifies a collection of smooth vector and scalar fields over a spatial substrate. These fields encode connectivity flows, synaptic strengths, axonal delays, cell-type preferences, and neuromodulatory influences. The field ensemble acts as a <em>genomic code</em>: a compact, continuous representation from which full network topologies can be instantiated.
+        <strong>Gestalt Vector Field Theory (GVFT)</strong> introduces a continuous, field-based framework for specifying how modules in a cognitive system interact. Instead of directly building network graphs, GVFT defines spatial fields that encode architectural influences—such as directional connectivity, synaptic weight potentials, and neuromodulatory flows. These fields serve as a generative substrate from which network topology emerges, subject to local field values and global consistency constraints.
       </p>
       <p>
-        The term “genomic” here is metaphorical. Just as a biological genome encodes the rules for development rather than specifying the organism explicitly, GVFT encodes rules for how modular architectures emerge. These rules are expressed as continuous, differentiable fields—learnable, evolvable, and amenable to analysis. The resulting architectures are shaped not only by task performance but by spatial, functional, and topological constraints derived from the fields themselves.
+        The term “gestalt” is used here to emphasize that cognitive structure arises from the interaction of multiple overlapping influences, not from any single fixed specification. GVFT encodes these influences as smooth, differentiable fields that are jointly optimized, interpreted, and sampled to produce functional modular networks.
       </p>
       <p>
-        GVFT thus provides a structured design space—<em>a higher-order substrate for architectural evolution</em>—grounded in both mathematical formalism and biologically inspired inductive biases. It enables us to ask new questions: not just what architecture performs best, but what field configurations give rise to particular cognitive affordances.
+        This framework offers a new kind of design space: spatial, differentiable, and biologically grounded. Rather than asking “what architecture performs best,” GVFT invites the question: “what field dynamics give rise to compositional cognition?” It provides both the mathematical tools and the conceptual vocabulary to explore that space.
       </p>
+    </section>    
     
     
     <section>
@@ -227,7 +229,7 @@
           </thead>
           <tbody>
               <tr>
-                  <td>Genomic Vector Field Theory (GVFT)</td>
+                  <td>Gestalt Vector Field Theory (GVFT)</td>
                   <td>Continuous vector and scalar fields over a Riemannian manifold, encoding connectivity, synaptic strengths, delays, cell types, and neuromodulation.</td>
                   <td>High: Explicit modeling of axon guidance, neuromodulation, and field couplings inspired by developmental biology.</td>
                   <td>Variational optimization with task, regularization, cross-field, and dynamic constraints; holographic compression with topological priors.</td>
@@ -457,87 +459,66 @@
         <p>
             with $\mathcal{D}$ the differential operator corresponding to our reaction-diffusion equation.
         </p>
-        
-        <h3>2.4 Mathematical Properties of Holographic Fields</h3>
-        <p>
-            The GVFT formalism exhibits several key mathematical properties:
-        </p>
-        <ul>
-            <li><strong>Dimensionality Preservation:</strong> The compression map $\Phi$ preserves functional topologies with a guarantee that the reconstruction error scales with the intrinsic dimensionality of the biological data manifold.</li>
-            <li><strong>Diffeomorphic Mapping:</strong> When properly constrained, $\Phi$ maintains diffeomorphic correspondences between regions of the original and compressed fields, ensuring that structural relationships are preserved.</li>
-            <li><strong>Scale Separation:</strong> The field representation naturally separates different spatial and temporal scales, allowing for efficient modeling of multi-scale phenomena (from fast synaptic dynamics to slow developmental processes).</li>
-        </ul>
-        <p>
-            We have validated these properties on synthetic data by compressing three interacting fields with known ground truth. The compression preserved 95% of the structural information and 90% of the functional characteristics, confirming the theoretical bounds.
-        </p>
     </section>
     
     <section>
-        <h2>3. Genotype-to-Phenotype Mapping</h2>
-        <p>
-            Deterministic thresholding for module instantiation is sensitive to parameter choices and lacks biological plausibility. We replace it with a probabilistic sampling framework:
-        </p>
-        <div class="equation-box">
-            $$p(\text{module at } \mathbf{x}) = \sigma\left(\beta \cdot \|\mathbf{F}(\mathbf{x})\| + \gamma \cdot W(\mathbf{x}) - \theta_0\right)$$
-        </div>
-        <p>
-            where $\sigma$ is the sigmoid function, and $\beta$, $\gamma$, and $\theta_0$ are learned parameters that control the contribution of each field to module placement.
-        </p>
-        <p>
-            Given modules at positions $\{\mathbf{r}_i\}$, inter-module connectivity is determined through a principled variational approach. We define connectivity as the solution to the optimization problem:
-        </p>
-        <div class="equation-box">
-            $$w_{ij} = \arg\max_{w} \left[ \rho(\mathbf{r}_i, \mathbf{r}_j) \cdot w - \frac{\lambda}{2} w^2 \right]$$
-        </div>
-        <p>
-            subject to the constraints:
-        </p>
-        <div class="equation-box">
-            $$0 \leq w \leq w_{\max}(\mathbf{r}_i)$$
-        </div>
-        <p>
-            where:
-        </p>
-        <div class="equation-box">
-            $$\rho(\mathbf{r}_i, \mathbf{r}_j) = \max(0, \hat{\mathbf{d}}_{ij} \cdot \hat{\mathbf{F}}_i) \cdot \|\mathbf{F}(\mathbf{r}_i)\| \cdot W(\mathbf{r}_i)$$
-        </div>
-        <p>
-            and:
-        </p>
-        <div class="equation-box">
-            $$\hat{\mathbf{d}}_{ij} = \frac{\mathbf{r}_j - \mathbf{r}_i}{\|\mathbf{r}_j - \mathbf{r}_i\|}, \quad \hat{\mathbf{F}}_i = \frac{\mathbf{F}(\mathbf{r}_i)}{\|\mathbf{F}(\mathbf{r}_i)\|}$$
-        </div>
-        <p>
-            This optimization has a closed-form solution:
-        </p>
-        <div class="equation-box">
-            $$w_{ij} = \min\left(\max\left(\frac{\rho(\mathbf{r}_i, \mathbf{r}_j)}{\lambda}, 0\right), w_{\max}(\mathbf{r}_i)\right)$$
-        </div>
-        <p>
-            To incorporate biological stochasticity, we sample connection weights from a distribution:
-        </p>
-        <div class="equation-box">
-            $$w_{ij}^{\text{actual}} \sim \mathcal{N}(w_{ij}, \sigma^2_w(\mathbf{r}_i))$$
-        </div>
-        <p>
-            where $\sigma^2_w(\mathbf{r}_i)$ is a position-dependent variance that models developmental noise.
-        </p>
-        <p>
-            Similarly, for delays:
-        </p>
-        <div class="equation-box">
-            $$\tau_{ij} = \tau_{\text{base}}(\mathbf{r}_i) + \kappa \cdot \|\mathbf{r}_j - \mathbf{r}_i\|$$
-        </div>
-        <p>
-            with:
-        </p>
-        <div class="equation-box">
-            $$\tau_{ij}^{\text{actual}} \sim \mathcal{N}(\tau_{ij}, \sigma^2_\tau(\mathbf{r}_i))$$
-        </div>
-        <p>
-            where $\kappa$ represents conduction velocity and $\tau_{\text{base}}$ captures baseline transmission delay.
-        </p>
+      <h2>3. Module Instantiation and Connectivity Inference</h2>
+      <p>
+        To derive discrete modular structures from continuous field representations, we introduce a probabilistic sampling scheme for module placement. Rather than applying hard thresholds to scalar field values, which can lead to brittle or non-generalizable behavior, we define a spatial likelihood function over the domain:
+      </p>
+      <div class="equation-box">
+          $$p(\text{module at } \mathbf{x}) = \sigma\left(\beta \cdot \|\mathbf{F}(\mathbf{x})\| + \gamma \cdot W(\mathbf{x}) - \theta_0\right)$$
+      </div>
+      <p>
+        where $\sigma$ is the sigmoid function, and $\beta$, $\gamma$, and $\theta_0$ are tunable parameters. This distribution captures the joint influence of connectivity flow magnitude and local synaptic strength on the likelihood of instantiating a module at position $\mathbf{x}$.
+      </p>
+      <p>
+        Once a set of module centers $\{\mathbf{r}_i\}$ is sampled, we derive inter-module connectivity by solving a constrained variational problem. The strength of each connection $w_{ij}$ between module $i$ and $j$ is optimized to maximize directional alignment and resource efficiency:
+      </p>
+      <div class="equation-box">
+          $$w_{ij} = \arg\max_{w} \left[ \rho(\mathbf{r}_i, \mathbf{r}_j) \cdot w - \frac{\lambda}{2} w^2 \right]$$
+      </div>
+      <p>
+        subject to:
+      </p>
+      <div class="equation-box">
+          $$0 \leq w \leq w_{\max}(\mathbf{r}_i)$$
+      </div>
+      <p>
+        where $\rho(\mathbf{r}_i, \mathbf{r}_j)$ quantifies the directional and scalar compatibility of the local field at $\mathbf{r}_i$ with a target $\mathbf{r}_j$:
+      </p>
+      <div class="equation-box">
+          $$\rho(\mathbf{r}_i, \mathbf{r}_j) = \max(0, \hat{\mathbf{d}}_{ij} \cdot \hat{\mathbf{F}}_i) \cdot \|\mathbf{F}(\mathbf{r}_i)\| \cdot W(\mathbf{r}_i)$$
+      </div>
+      <div class="equation-box">
+          $$\hat{\mathbf{d}}_{ij} = \frac{\mathbf{r}_j - \mathbf{r}_i}{\|\mathbf{r}_j - \mathbf{r}_i\|}, \quad \hat{\mathbf{F}}_i = \frac{\mathbf{F}(\mathbf{r}_i)}{\|\mathbf{F}(\mathbf{r}_i)\|}$$
+      </div>
+      <p>
+        This yields a closed-form solution:
+      </p>
+      <div class="equation-box">
+          $$w_{ij} = \min\left(\max\left(\frac{\rho(\mathbf{r}_i, \mathbf{r}_j)}{\lambda}, 0\right), w_{\max}(\mathbf{r}_i)\right)$$
+      </div>
+      <p>
+        To reflect uncertainty and local developmental variability, we model the actual connection strength as a stochastic sample:
+      </p>
+      <div class="equation-box">
+          $$w_{ij}^{\text{actual}} \sim \mathcal{N}(w_{ij}, \sigma^2_w(\mathbf{r}_i))$$
+      </div>
+      <p>
+        where $\sigma^2_w(\mathbf{r}_i)$ is a spatially varying noise scale. Synaptic delay between modules is similarly derived from spatial geometry:
+      </p>
+      <div class="equation-box">
+          $$\tau_{ij} = \tau_{\text{base}}(\mathbf{r}_i) + \kappa \cdot \|\mathbf{r}_j - \mathbf{r}_i\|$$
+      </div>
+      <div class="equation-box">
+          $$\tau_{ij}^{\text{actual}} \sim \mathcal{N}(\tau_{ij}, \sigma^2_\tau(\mathbf{r}_i))$$
+      </div>
+      <p>
+        where $\kappa$ denotes conduction velocity and $\tau_{\text{base}}$ encodes intrinsic delay offsets. This framework supports robust and spatially coherent instantiation of modular networks from continuous fields, incorporating both directional flow and stochastic variation.
+      </p>
     </section>
+    
     
     <section>
         <h2>4. Variational Field Optimization</h2>
@@ -596,7 +577,7 @@
     <section class="conclusion">
         <h2>Conclusion</h2>
         <p>
-            Genomic Vector Field Theory provides a mathematically rigorous, biologically plausible, and scalable framework for modular cognitive system design. It opens new paths toward evolvable and interpretable artificial intelligence.
+            Gestalt Vector Field Theory provides a mathematically rigorous, biologically plausible, and scalable framework for modular cognitive system design. It opens new paths toward evolvable and interpretable artificial intelligence.
         </p>
     </section>
 
