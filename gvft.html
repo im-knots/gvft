@@ -325,24 +325,44 @@
       <p>
         where $Q$ extracts features like modularity or connectivity strength, implemented as a lightweight neural network or analytical function.
       </p>
-      <h3>2.3 Time Evolution of Dynamic Fields</h3>
-      <p>
-        For time-dependent fields (e.g., neuromodulatory field $\eta(\mathbf{x}, t)$), we model evolution using a simple linear diffusion equation:
-      </p>
-      <div class="equation-box">
-        $$\partial_t \eta(\mathbf{x}, t) = D_\eta \nabla^2 \eta(\mathbf{x}, t) - \lambda_\eta \eta(\mathbf{x}, t) + S_\eta(\mathbf{x}, t)$$
-      </div>
-      <p>
-        where $D_\eta > 0$ is a diffusion coefficient, $\lambda_\eta > 0$ is a decay rate, and $S_\eta(\mathbf{x}, t) = \sum_i a_i(t) \cdot \exp(-\|\mathbf{x} - \mathbf{x}_i\|^2 / \sigma^2)$ is a source term modeling localized activity at positions $\mathbf{x}_i$. We solve this numerically using finite differences or train a neural network $\eta(\mathbf{x}, t) \approx \mathcal{N}_\theta(\mathbf{x}, t)$ to minimize:
-      </p>
-      <div class="equation-box">
-        $$\mathcal{L}_{\text{dyn}} = \mathbb{E}_{\mathbf{x}, t} \left[ \|\partial_t \mathcal{N}_\theta(\mathbf{x}, t) - D_\eta \nabla^2 \mathcal{N}_\theta(\mathbf{x}, t) + \lambda_\eta \mathcal{N}_\theta(\mathbf{x}, t) - S_\eta(\mathbf{x}, t)\|^2 \right]$$
-      </div>
-      <p>
-        This applies to any time-dependent field, ensuring generality across $n$ fields.
-      </p>
-    </section>
-    
+      <section>
+        <h3>2.3 Coupled Field Dynamics and Time Evolution</h3>
+      
+        <p>
+          GVFT simulates a system of coupled partial differential equations (PDEs) over a spatial domain. These equations govern the evolution of three primary architectural fields: the <em>connectivity flow field</em> $\mathbf{F}(\mathbf{x}, t)$, the <em>synaptic strength field</em> $W(\mathbf{x}, t)$, and the <em>neuromodulatory field</em> $\eta(\mathbf{x}, t)$. Crucially, these fields form a dynamical feedback loop rather than evolving independently.
+        </p>
+      
+        <p>
+          The evolution of the synaptic strength field is influenced by local flow magnitude, external sources, and neuromodulatory influence:
+        </p>
+        <div class="equation-box">
+          $$\partial_t W(\mathbf{x}, t) = D_W \nabla^2 W - \lambda_W W + \beta_W \cdot \sigma(\|\mathbf{F}(\mathbf{x}, t)\|) + S_W(\mathbf{x}) + \eta(\mathbf{x}, t)$$
+        </div>
+      
+        <p>
+          The flow field is modulated by local synaptic strength:
+        </p>
+        <div class="equation-box">
+          $$\partial_t \mathbf{F}(\mathbf{x}, t) = D_F \nabla^2 \mathbf{F} - \lambda_F \mathbf{F} + \gamma_F \cdot \mathbf{F} \cdot (W(\mathbf{x}, t) - 0.5)$$
+        </div>
+      
+        <p>
+          The neuromodulatory field evolves in response to localized architectural “activity,” defined as a mixture of flow magnitude and synaptic strength:
+        </p>
+        <div class="equation-box">
+          $$S_\eta(\mathbf{x}, t) = \frac{1}{2} \left( \|\mathbf{F}(\mathbf{x}, t)\|^2 + W(\mathbf{x}, t)^2 \right)$$
+          $$\partial_t \eta(\mathbf{x}, t) = D_\eta \nabla^2 \eta - \lambda_\eta \eta + S_\eta(\mathbf{x}, t)$$
+        </div>
+      
+        <p>
+          This closed-loop coupling allows local hotspots of activity to reinforce themselves over time via neuromodulatory amplification, creating rich spatiotemporal patterns and preventing collapse into static equilibria.
+        </p>
+      
+        <p>
+          The system is solved using explicit finite difference updates on a regular 2D grid. All terms remain differentiable, enabling backpropagation through architectural dynamics and field generation processes.
+        </p>
+      </section>
+      
   <section>
     <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
     <p>
