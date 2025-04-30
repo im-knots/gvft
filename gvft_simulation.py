@@ -1,65 +1,95 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.ndimage import gaussian_filter, laplace
+from scipy.ndimage import laplace, gaussian_filter
 
-# === Parameters ===
+# --- PARAMETERS ---
 grid_size = 100
-timesteps = 10
+timesteps = 1000
+view_step = 100
 num_modules = 10
-top_k = 3
-cos_threshold = 0.3
+top_k = 2
+cos_threshold = 0.2
 lambda_val = 0.2
 kappa = 0.3
 
-# === Setup Domain ===
+beta_W = 0.95
+gamma_F = 0.2
+
+D_F = 0.03
+D_W = 0.04
+D_eta = 0.02
+
+lam_F = 0.005
+lam_W = 0.03
+lam_eta = 0.01
+
+# --- DOMAIN SETUP ---
 np.random.seed(42)
 x = np.linspace(-1, 1, grid_size)
 y = np.linspace(-1, 1, grid_size)
 X, Y = np.meshgrid(x, y)
-dx = x[1] - x[0]
-dy = y[1] - y[0]
 
-# === Fixed Module Positions ===
+# --- MODULE LOCATIONS ---
 indices = np.random.choice(grid_size * grid_size, size=num_modules, replace=False)
 yi, xi = np.unravel_index(indices, (grid_size, grid_size))
 module_coords = np.column_stack([X[yi, xi], Y[yi, xi]])
 
-# === Evolve Field Function ===
-def evolve_field(field, D, lam, steps):
-    series = [field.copy()]
-    for _ in range(steps - 1):
-        lap = laplace(field)
-        field += D * lap - lam * field
-        field = np.clip(field, 0, 1)
-        series.append(field.copy())
-    return series
+# --- SOURCE FIELD FOR W ---
+def source_field(X, Y, centers, amplitude=1.0, sigma=0.1):
+    S = np.zeros_like(X)
+    for (cx, cy) in centers:
+        S += amplitude * np.exp(-((X - cx)**2 + (Y - cy)**2) / (2 * sigma**2))
+    return S
 
-# === Seed Initial Fields ===
-potential = gaussian_filter(np.random.randn(grid_size, grid_size), sigma=8)
-Fy_0, Fx_0 = np.gradient(potential, dy, dx)
-Fx_0 = gaussian_filter(Fx_0, sigma=1)
-Fy_0 = gaussian_filter(Fy_0, sigma=1)
+S_W = source_field(X, Y, [(-0.5, -0.5), (0.5, 0.5)], amplitude=0.2, sigma=0.2)
 
+# --- INITIAL FIELD SEEDING ---
+potential = gaussian_filter(np.random.randn(grid_size, grid_size), sigma=10)
+Fy_0, Fx_0 = np.gradient(potential, y[1] - y[0], x[1] - x[0])
 F_mag_0 = np.sqrt(Fx_0**2 + Fy_0**2)
+
 W_0 = 0.6 * 1 / (1 + np.exp(-F_mag_0 * 5)) + 0.4 * gaussian_filter(np.random.rand(grid_size, grid_size), sigma=4)
 W_0 = (W_0 - W_0.min()) / (W_0.max() - W_0.min())
 
-# === Evolve Each Field Separately ===
-Fx_series = evolve_field(Fx_0, D=0.005, lam=0.02, steps=timesteps)
-Fy_series = evolve_field(Fy_0, D=0.015, lam=0.01, steps=timesteps)
-W_series  = evolve_field(W_0,  D=0.01,  lam=0.01, steps=timesteps)
+eta_0 = np.zeros_like(W_0)
 
-# === Instantiate Graphs from Fields ===
-graph_series = []
+# --- EVOLUTION ---
+Fx_series, Fy_series, W_series, eta_series, Graphs = [Fx_0.copy()], [Fy_0.copy()], [W_0.copy()], [eta_0.copy()], []
+
 for t in range(timesteps):
-    Fx_t, Fy_t, W_t = Fx_series[t], Fy_series[t], W_series[t]
-    weights = np.zeros((num_modules, num_modules))
+    Fx, Fy, W, eta = Fx_series[-1], Fy_series[-1], W_series[-1], eta_series[-1]
 
+    F_mag = np.sqrt(Fx**2 + Fy**2)
+    F_mag_norm = F_mag / (np.max(F_mag) + 1e-5)
+
+    # Dynamic neuromodulation source based on local energy
+    S_eta = (F_mag_norm**2 + W**2) / 2.0
+
+    W_interact = beta_W * 1 / (1 + np.exp(-F_mag_norm * 5)) + (1 - beta_W) * W
+    F_scale = 1 + gamma_F * (W - 0.5)
+
+    Fx_next = Fx + D_F * laplace(Fx) - lam_F * Fx
+    Fy_next = Fy + D_F * laplace(Fy) - lam_F * Fy
+    Fx_next *= F_scale
+    Fy_next *= F_scale
+
+    eta_next = eta + D_eta * laplace(eta) - lam_eta * eta + S_eta
+    W_next = W + D_W * laplace(W) - lam_W * W + S_W + eta
+    W_next = (W_next + W_interact) / 2.0
+    W_next = (W_next - W_next.min()) / (W_next.max() - W_next.min())
+
+    Fx_series.append(Fx_next)
+    Fy_series.append(Fy_next)
+    W_series.append(W_next)
+    eta_series.append(eta_next)
+
+    # === CONNECTION INSTANTIATION ===
+    weights = np.zeros((num_modules, num_modules))
     for i in range(num_modules):
         xi_idx = np.argmin(np.abs(x - module_coords[i, 0]))
         yi_idx = np.argmin(np.abs(y - module_coords[i, 1]))
-        F_i = np.array([Fx_t[yi_idx, xi_idx], Fy_t[yi_idx, xi_idx]])
-        W_i = W_t[yi_idx, xi_idx]
+        F_i = np.array([Fx_next[yi_idx, xi_idx], Fy_next[yi_idx, xi_idx]])
+        W_i = W_next[yi_idx, xi_idx]
 
         candidate_edges = []
         for j in range(num_modules):
@@ -83,38 +113,60 @@ for t in range(timesteps):
         for j, w_ij in candidate_edges:
             weights[i, j] = w_ij
 
-    graph_series.append(weights.copy())
+    Graphs.append(weights.copy())
 
-# === Visualization ===
-fig, axs = plt.subplots(4, timesteps, figsize=(4 * timesteps, 12))
-for t in range(timesteps):
-    F_mag_t = np.sqrt(Fx_series[t]**2 + Fy_series[t]**2)
-    axs[0, t].imshow(F_mag_t, extent=[-1, 1, -1, 1], origin='lower', cmap='Blues')
-    axs[0, t].set_title(f"Flow Mag t={t}")
-    axs[0, t].axis('off')
+# --- VISUALIZATION ---
+timesteps_to_show = list(range(0, timesteps, view_step))
+n_show = len(timesteps_to_show)
+row_labels = ["Flow Mag", "W(x)", "η(x, t)", "Flow Field", "Graph"]
 
-    axs[1, t].imshow(W_series[t], extent=[-1, 1, -1, 1], origin='lower', cmap='hot')
-    axs[1, t].set_title(f"W(x) t={t}")
-    axs[1, t].axis('off')
+fig, axs = plt.subplots(len(row_labels), n_show, figsize=(4 * n_show, 16))
 
-    axs[2, t].quiver(X, Y, Fx_series[t], Fy_series[t], color='gray', alpha=0.5)
-    axs[2, t].set_title(f"Flow Field t={t}")
-    axs[2, t].axis('off')
+# Plot fields
+for i, t in enumerate(timesteps_to_show):
+    Fx_t = Fx_series[t]
+    Fy_t = Fy_series[t]
+    W_t = W_series[t]
+    eta_t = eta_series[t]
+    F_mag_t = np.sqrt(Fx_t**2 + Fy_t**2)
+    weights = Graphs[t]
 
-    axs[3, t].imshow(W_series[t], extent=[-1, 1, -1, 1], origin='lower', cmap='hot', alpha=0.3)
-    axs[3, t].quiver(X, Y, Fx_series[t], Fy_series[t], color='lightgray', alpha=0.3)
-    axs[3, t].scatter(module_coords[:, 0], module_coords[:, 1], c='blue', s=40, zorder=3)
-    for i in range(num_modules):
-        for j in range(num_modules):
-            if graph_series[t][i, j] > 0:
-                x0, y0 = module_coords[i]
-                x1, y1 = module_coords[j]
-                alpha = min(1.0, graph_series[t][i, j])
-                axs[3, t].arrow(x0, y0, x1 - x0, y1 - y0,
+    axs[0, i].imshow(F_mag_t, extent=[-1, 1, -1, 1], origin='lower', cmap='Blues')
+    axs[0, i].set_title(f"t={t}")
+    axs[0, i].axis('off')
+
+    axs[1, i].imshow(W_t, extent=[-1, 1, -1, 1], origin='lower', cmap='hot')
+    axs[1, i].axis('off')
+
+    axs[2, i].imshow(eta_t, extent=[-1, 1, -1, 1], origin='lower', cmap='PuRd')
+    axs[2, i].axis('off')
+
+    axs[3, i].streamplot(x, y, Fx_t, Fy_t, color='gray', density=1)
+    axs[3, i].axis('off')
+
+    axs[4, i].imshow(W_t, extent=[-1, 1, -1, 1], origin='lower', cmap='hot', alpha=0.3)
+    axs[4, i].streamplot(x, y, Fx_t, Fy_t, color='lightgray', density=1.5)
+    axs[4, i].scatter(module_coords[:, 0], module_coords[:, 1], c='blue', s=40, zorder=3)
+    for m in range(num_modules):
+        for n in range(num_modules):
+            if weights[m, n] > 0:
+                x0, y0 = module_coords[m]
+                x1, y1 = module_coords[n]
+                alpha = min(1.0, weights[m, n])
+                axs[4, i].arrow(x0, y0, x1 - x0, y1 - y0,
                                 head_width=0.01, length_includes_head=True,
                                 alpha=alpha, color='green', linewidth=0.8, zorder=2)
-    axs[3, t].set_title(f"Graph t={t}")
-    axs[3, t].axis('off')
+    axs[4, i].axis('off')
 
-plt.tight_layout()
+# Manually position row labels using figure coordinates
+# Calculate vertical centers using axes positions
+fig.subplots_adjust(left=0.2, right=0.98, top=0.95, bottom=0.05, wspace=0.1, hspace=0.1)
+
+for row_idx, label in enumerate(row_labels):
+    pos = axs[row_idx, 0].get_position()
+    y_center = (pos.y0 + pos.y1) / 2
+    fig.text(0.13, y_center, label, fontsize=14, ha='right', va='center')
+
 plt.show()
+
+
