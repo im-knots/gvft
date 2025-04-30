@@ -344,7 +344,7 @@
     </section>
     
     <section>
-      <h2>3. Module Instantiation and Connectivity Inference</h2>
+      <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
       <p>
         To generate discrete modules from continuous fields, we sample module positions using a probabilistic likelihood based on two key fields (e.g., connectivity flow $\mathbf{F}$ and synaptic strength $W$):
       </p>
@@ -384,7 +384,7 @@
     </section>
     
     <section>
-      <h2>4. Variational Field Optimization</h2>
+      <h2>4. Optimizing Field Parameters via Task-Driven Gradients</h2>
       <p>
         We optimize the field parameters $\theta$ (e.g., neural network weights defining $\Theta$) using a composite loss:
       </p>
@@ -413,7 +413,7 @@
     </section>
     
     <section>
-      <h2>6. Bidirectional Biological Modeling</h2>
+      <h2>6. Fitting GVFT to and from Biological Connectomes</h2>
       <h3>6.1 Biological Connectome to GVFT</h3>
       <p>
         Given a biological connectome adjacency matrix $A^{bio}_{ij}$, we optimize field parameters to match the inferred connectivity:
@@ -446,6 +446,7 @@
 
     <section>
       <h2>Appendix A: Comparison with Prior Approaches</h2>
+      <p>This appendix situates GVFT within related architectural paradigms across machine learning and computational neuroscience. It highlights how GVFT generalizes or diverges from prior work in representational form, optimization strategy, and biological plausibility.</p>
       <table>
           <thead>
               <tr>
