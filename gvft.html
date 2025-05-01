@@ -351,7 +351,7 @@
       </section>
       
       <section>
-      <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
+        <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
         <p>
           To generate discrete neural architectures from continuous fields, we instantiate modules by sampling their positions probabilistically based on the connectivity flow $\mathbf{F}(\mathbf{x}, t)$ and synaptic strength $W(\mathbf{x}, t)$ fields, then infer connectivity weights between them. The probability of placing a module at position $\mathbf{x}$ is defined as:
         </p>
@@ -359,7 +359,7 @@
           $$p(\text{module at } \mathbf{x}) = \sigma(\beta \cdot \|\mathbf{F}(\mathbf{x}, t)\| + \gamma \cdot W(\mathbf{x}, t))$$
         </div>
         <p>
-          where $\sigma$ is the sigmoid function, and $\beta, \gamma > 0$ are learned scalars balancing the influence of flow magnitude and synaptic strength. We sample $N$ module centers $\{\mathbf{r}_i\}_{i=1}^N$ from this distribution using rejection sampling or a grid-based approach, with $N$ set by a hyperparameter or task requirements. Note that our preliminary simulation fixes module positions randomly within the domain $\Omega$, with plans to implement this probabilistic sampling in future work to align with the theoretical framework.
+          where $\sigma$ is the sigmoid function, and $\beta, \gamma > 0$ are parameters balancing the influence of flow magnitude and synaptic strength. We sample $N$ module centers $\{\mathbf{r}_i\}_{i=1}^N$ from this distribution using rejection sampling or a grid-based approach, with $N$ set by a hyperparameter or task requirements. Note that the simulations presented in Section 4 implement this probabilistic sampling dynamically, allowing module positions $\mathbf{r}_i(t)$ to evolve over time based on the changing fields.
         </p>
         
         <h3>3.1 Connectivity Inference</h3>
@@ -394,82 +394,54 @@
 
       <section>
         <h2>4. Simulation Study of Core Dynamics</h2>
-        <p>
-            To investigate the behavior of the coupled field dynamics proposed in Section 2.3, we performed numerical simulations. This section details the specific implementation choices, simulation setup, parameter exploration methodology, and key results observed from simulating the interaction of the Connectivity Flow ($\mathbf{F}$), Synaptic Strength ($W$), and Neuromodulatory ($\eta$) fields.
-        </p>
-        
-        <h3>4.1 Simulation Implementation Details</h3>
-        <p>
-            The simulations were conducted on a $100 \times 100$ grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed an explicit Euler method with finite differences to approximate the partial derivatives in the PDEs from Section 2.3. A fixed time step $\Delta t = 1$ was used for the updates (effectively absorbed into the rate constants $D_W, D_F, D_\eta, \lambda_W, \lambda_F, \lambda_\eta$, etc.). The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, and gradients $\nabla W$ were computed using central differences provided by SciPy's `ndimage` library. No-flux boundary conditions were implicitly used via the Laplacian implementation mode. Small amounts of Gaussian noise were added to the $\mathbf{F}$ and $W$ updates at each step to simulate stochastic effects.
-        </p>
-        <p>
-            The coupled PDE system exhibits stiffness due to the presence of multiple time scales: rapid decay and reaction terms (e.g., $-\lambda_W W$, $\alpha \|\mathbf{F}\|$ in the $W$ update) contrast with slower diffusion processes (e.g., $D_W \nabla^2 W$). This stiffness can lead to numerical instability with the explicit Euler method, potentially contributing to the observed saturation or decay regimes. Future work will explore implicit or semi-implicit solvers, such as the Crank-Nicolson scheme, to improve stability and better capture the system's dynamics.
-        </p>
-        <p>
-            For the results presented here, we used specific functional forms for the interaction terms in the PDEs presented generally in Section 2.3:
-        </p>
-        <ul>
-            <li>
-                The synaptic strength field update ($\partial_t W$) used:
-                <div class="equation-box">
-                 $$\partial_t W \approx D_W \nabla^2 W - \lambda_W W + \alpha \|\mathbf{F}\| + \eta_{coeff} \eta + \mathcal{N}(0, \sigma_W^2)$$
-                </div>
-                 Here, the term $\alpha \|\mathbf{F}\|$ represents the influence of flow magnitude (replacing the general $\beta_W \sigma(\|\mathbf{F}\|)$ form), and $\eta_{coeff} \eta$ incorporates the neuromodulatory influence with a tunable coefficient $\eta_{coeff}$ (replacing the general external source $S_W$ and direct $\eta$ term). $\alpha$ and $\eta_{coeff}$ are key parameters explored.
-            </li>
-            <li>
-                The connectivity flow field update ($\partial_t \mathbf{F}$) used:
-                 <div class="equation-box">
-                 $$\partial_t \mathbf{F} \approx D_F \nabla^2 \mathbf{F} - \lambda_F \mathbf{F} + \beta_{coupling} \nabla W + \mathcal{N}(0, \sigma_F^2)$$
-                 </div>
-                 Notably, we used a term proportional to the gradient of the synaptic strength field, $\beta_{coupling} \nabla W$, to model the influence of $W$ on $\mathbf{F}$, rather than the direct multiplicative modulation $\gamma_F \mathbf{F} (W-0.5)$ shown in the general equation, as this gradient coupling appeared more effective in initial tests.
-            </li>
-             <li>
-                 The neuromodulatory field update ($\partial_t \eta$) directly implemented the equation from Section 2.3:
-                 <div class="equation-box">
-                 $$\partial_t \eta = D_\eta \nabla^2 \eta - \lambda_\eta \eta + S_\eta$$
-                 $$S_\eta = \frac{1}{2} \left( \|\mathbf{F}\|^2 + W^2 \right)$$
-                 </div>
-                  (No additional noise was added to $\eta$ in the current simulations).
-             </li>
-        </ul>
-         <p> Fields $W$ and $\eta$ were clipped to prevent numerical instability, and $\mathbf{F}$ and $W$ were periodically normalized during the simulation as described in the implementation code (Appendix B - *Placeholder for code link/details*). Modules were placed randomly at the start and kept fixed, as noted in Section 3.
-         </p>
-    
-        <h3>4.2 Parameter Space Exploration</h3>
-        <p>
-            <em>(Placeholder: Describe the parameter sweeps performed, e.g., the 1D and 2D sweeps exploring $D_F$, $\lambda_W$, $\eta_{coeff}$, $\alpha$. Show and discuss the resulting phase diagrams using metrics like hotspot fraction. Discuss observed sensitivity, saturation, and decay regimes.)</em>
-        </p>
-        <p>
-            Our exploration focused on understanding the influence of the decay rate $\lambda_W$, the flow diffusion $D_F$, the neuromodulatory coupling $\eta_{coeff}$, and the flow-strength coupling $\alpha$. We found that the system exhibits high sensitivity, particularly to $\eta_{coeff}$ and $\alpha$, often resulting in states dominated by saturation (where $W$ reaches maximum values across the grid) or decay (where $W$ tends towards zero), making the identification of regimes with stable, non-trivial patterns challenging.
-        </p>
-        <p>
-            To systematically guide our parameter selection and target regimes likely to produce pattern formation, we employed dimensional analysis by identifying key dimensionless ratios that govern the balance of competing effects in the system. We focused on three ratios: (1) the diffusion-to-decay ratio, (2) the feedback-to-decay ratio for $W$, and (3) the coupling-to-decay ratio for $\mathbf{F}$. The spatial step size is $\Delta x = 2 / (grid\_size - 1) = 2 / 99 \approx 0.0202$, so $\Delta x^2 \approx 0.000408$. For $W$, the diffusion-to-decay ratio is defined as:
-            <div class="equation-box">
-            $$R_W = \frac{D_W}{\lambda_W \Delta x^2}$$
-            </div>
-            In the initial sweeps, $D_W = 0.03$ and $\lambda_W$ ranged from 0.05 to 0.25, yielding $R_W$ from $1471$ (at $\lambda_W = 0.05$) to $294$ (at $\lambda_W = 0.25$), indicating that diffusion dominates decay, contributing to the observed uniform states. Similar ratios for $\mathbf{F}$ and $\eta$ were also large: $R_F = D_F / (\lambda_F \Delta x^2)$ ranged from $3501$ to $21007$ ($D_F$ from 0.01 to 0.06, $\lambda_F = 0.007$), and $R_\eta = D_\eta / (\lambda_\eta \Delta x^2) = 490$ ($D_\eta = 0.02$, $\lambda_\eta = 0.1$). To encourage pattern formation, we targeted $R_W \approx 5$, leading to a new $D_W$ range:
-            <div class="equation-box">
-            $$\frac{D_W}{\lambda_W \times 0.000408} = 5 \implies D_W = 5 \times 0.000408 \times \lambda_W = 0.00204 \lambda_W$$
-            </div>
-            For $\lambda_W$ from 0.05 to 0.25, this gives $D_W$ from 0.0001 to 0.0005. Similarly, $R_F \approx 5$ yields $D_F \approx 0.000014$, and $R_\eta \approx 5$ gives $D_\eta \approx 0.0002$. Next, the feedback-to-decay ratio for $W$ is:
-            <div class="equation-box">
-            $$F_W = \frac{\alpha + \eta_{coeff} |\eta_{\text{max}}|}{\lambda_W |W_{\text{max}}|}$$
-            </div>
-            With $|\eta_{\text{max}}| = 5$ (due to clipping), $|W_{\text{max}}| = 2$ (due to normalization), initial $\alpha = 0.8$, and $\eta_{coeff} = 0.05$, we have $\alpha + \eta_{coeff} |\eta_{\text{max}}| = 0.8 + 0.05 \times 5 = 1.05$. For $\lambda_W = 0.05$, $F_W = 1.05 / (0.05 \times 2) = 10.5$, and for $\lambda_W = 0.25$, $F_W = 2.1$, indicating feedback dominates decay, leading to saturation. Targeting $F_W \approx 1$, we adjusted $\alpha$ from 0.1 to 0.5 and $\eta_{coeff}$ from 0.01 to 0.1. Finally, the coupling-to-decay ratio for $\mathbf{F}$ is:
-            <div class="equation-box">
-            $$C_F = \frac{\beta_{coupling} |\nabla W|_{\text{max}}}{\lambda_F |\mathbf{F}|_{\text{max}}|}$$
-            </div>
-            With $|\mathbf{F}|_{\text{max}}| = 1$, $|\nabla W|_{\text{max}} \approx 4 / \Delta x \approx 198$ (since $W \in [-2, 2]$ over a domain of size 2), $\beta_{coupling} = 0.1$, and $\lambda_F = 0.007$, we get $C_F \approx 2829$, suggesting overly strong coupling. Targeting $C_F \approx 5$ gives $\beta_{coupling} \approx 0.0002$. These new parameter regimes (e.g., $D_W$ from 0.0001 to 0.0005, $D_F \approx 0.000014$, $\alpha$ from 0.1 to 0.5) aim to balance diffusion, decay, and feedback, with ongoing sweeps to identify regimes where stable patterns, such as localized hotspots or waves, emerge.
-        </p>
-        
-        <h3>4.3 Emergent Field Patterns and Graph Dynamics</h3>
-        <p>
-            <em>(Placeholder: Show visualizations from selected full simulation runs from promising parameter regimes (once found!). Discuss the observed patterns in the $\mathbf{F}$, $W$, and $\eta$ fields over time. Analyze the evolution of the generated graph structure based on these fields. Discuss phenomena like pattern stability, travelling waves, competition, feature selectivity, etc., if observed.)</em>
-        </p>
-        <p>
-            Characterizing the specific spatio-temporal patterns and resulting graph topologies that emerge in stable regimes remains an area of ongoing investigation.
-        </p>
-    </section>
+          <p>
+              To investigate the behavior of the coupled field dynamics proposed in Section 2.3, we performed numerical simulations. This section details the specific implementation choices, simulation setup, parameter exploration methodology, and key results observed from simulating the interaction of the Connectivity Flow ($\mathbf{F}$), Synaptic Strength ($W$), and Neuromodulatory ($\eta$) fields.
+          </p>
+          
+          <h3>4.1 Simulation Implementation Details</h3>
+          <p> The simulations were conducted on a $100 \times 100$ grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed the second-order accurate Crank-Nicolson method for time integration, using finite differences for spatial derivatives. This implicit method enhances numerical stability compared to the explicit Euler scheme. The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, represented as a sparse matrix $\mathbf{L}$, and gradients $\nabla W$ were computed using central differences. No-flux boundary conditions were implicitly handled by the structure of $\mathbf{L}$. The discretized system for a generic field $\phi$ takes the form:
+          </p>
+          <div class="equation-box">
+             $$(\mathbf{I} - \frac{\Delta t}{2} \mathbf{M}_\phi) \phi^{n+1} = (\mathbf{I} + \frac{\Delta t}{2} \mathbf{M}_\phi) \phi^{n} + \Delta t \cdot \text{Source}^{n+1/2}$$
+          </div>
+          <p>
+              where $\phi^n$ is the flattened vector of field values at time $n$, $\mathbf{I}$ is the identity matrix, $\mathbf{M}_\phi$ incorporates the diffusion and linear decay terms (e.g., $D_\phi \mathbf{L} - \lambda_\phi \mathbf{I}$), and $\text{Source}^{n+1/2}$ represents the non-linear source and coupling terms, evaluated appropriately for the Crank-Nicolson scheme (often approximated at time $n$ or $n+1/2$). This linear system was solved at each time step using sparse linear algebra routines (`scipy.sparse.linalg.spsolve`). A time step $\Delta t = 1.0$ was used.
+          </p>
+          <p>
+               For the results presented here, we implemented specific functional forms for the interaction terms based on the general equations in Section 2.3:
+          </p>
+          <ul>
+              <li>
+                  The synaptic strength field update ($\partial_t W$) used the source term: $ \alpha \|\mathbf{F}\| + \eta_{coeff} \eta + \mathcal{N}(0, \sigma_W^2) $. The parameters $\alpha$ and $\eta_{coeff}$ were varied during exploration.
+              </li>
+              <li>
+                  The connectivity flow field update ($\partial_t \mathbf{F}$) used the coupling term: $ \beta_{coupling} \nabla W + \mathcal{N}(0, \sigma_F^2) $. This use of the gradient $\nabla W$ differs from the direct modulation by $W$ in the general form (Eq. X) and was chosen based on preliminary implementation tests.
+              </li>
+               <li>
+                   The neuromodulatory field update ($\partial_t \eta$) directly implemented the source term $S_\eta = \frac{1}{2} ( \|\mathbf{F}\|^2 + W^2 )$ as defined in Section 2.3.
+               </li>
+          </ul>
+           <p> Fields $W$ and $\eta$ were clipped, and $\mathbf{F}$ and $W$ were periodically normalized as detailed previously. Crucially, module positions $\mathbf{r}_i(t)$ were resampled at each timestep based on the current fields $\mathbf{F}$ and $W$ using the probability distribution defined in Section 3. The parameter sweeps and simulation runs were parallelized using Python's `multiprocessing` library to improve throughput. Further details on parameter values used for specific results are provided in Appendix B (*Placeholder*).
+           </p>
+  
+  
+          <h3>4.2 Parameter Space Exploration</h3>
+          <p>
+              <em>(Placeholder: Describe the parameter sweeps performed, e.g., the 1D and 2D sweeps exploring $D_F$, $\lambda_W$, $\eta_{coeff}$, $\alpha$. Show and discuss the resulting phase diagrams using metrics like hotspot fraction. Discuss observed sensitivity, saturation, and decay regimes.)</em>
+          </p>
+          <p>
+              Our exploration focused on understanding the influence of the decay rate $\lambda_W$, the flow diffusion $D_F$, the neuromodulatory coupling $\eta_{coeff}$, and the flow-strength coupling $\alpha$. We found that the system exhibits high sensitivity, particularly to $\eta_{coeff}$ and $\alpha$, often resulting in states dominated by saturation (where $W$ reaches maximum values across the grid) or decay (where $W$ tends towards zero), making the identification of regimes with stable, non-trivial patterns challenging.
+          </p>
+          
+          <h3>4.3 Emergent Field Patterns and Graph Dynamics</h3>
+          <p>
+              <em>(Placeholder: Show visualizations from selected full simulation runs from promising parameter regimes (once found!). Discuss the observed patterns in the $\mathbf{F}$, $W$, and $\eta$ fields over time. Analyze the evolution of the generated graph structure and the dynamically moving modules based on these fields. Discuss phenomena like pattern stability, travelling waves, competition, feature selectivity, etc., if observed.)</em>
+          </p>
+          <p>
+              Characterizing the specific spatio-temporal patterns and resulting graph topologies that emerge in stable regimes remains an area of ongoing investigation.
+          </p>
+          
+      </section>
     <section>
       <h2>5. Optimizing Field Parameters via Task-Driven Gradients</h2>
       <p>
