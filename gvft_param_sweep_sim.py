@@ -13,7 +13,7 @@ os.makedirs("figures", exist_ok=True)
 
 # --- PARAMETERS ---
 grid_size = 100
-timesteps_sweep = 500
+timesteps_sweep = 200
 timesteps_sim = 500
 view_step = 50
 num_modules = 10
@@ -36,8 +36,8 @@ noise_F = 0.0001
 noise_W = 0.001
 
 # --- Define Parameter Sweep Ranges ---
-D_F_values = np.linspace(0.01, 0.06, 10)
-lam_W_values = np.linspace(0.05, 0.25, 8)
+D_F_values = np.linspace(0.005, 0.08, 50)
+lam_W_values = np.linspace(0.01, 0.30, 50)
 
 # --- DOMAIN SETUP ---
 np.random.seed(42)

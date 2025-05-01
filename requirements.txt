@@ -2,3 +2,4 @@ matplotlib
 numpy
 scipy
 seaborn
+cupy-cuda12x
