@@ -24,6 +24,7 @@
     </script>
     <script type="text/javascript" id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-svg.js"></script>
     <style>
+        /* --- Styles remain the same as before --- */
         :root {
             --primary-color: #1a2639;
             --secondary-color: #3e4a61;
@@ -188,14 +189,14 @@
     </header>
     
     <div class="abstract-container">
-      <div class="abstract-heading">Abstract</div>
+        <div class="abstract-heading">Abstract</div>
       <p>
         Gestalt Vector Field Theory (GVFT) introduces a meta-architectural framework for specifying and evolving modular neural network topologies using continuous multi-field representations defined over a spatial domain. Instead of encoding fixed graphs, GVFT defines smooth, differentiable fields—such as connectivity flows, synaptic strengths, conduction delays, cell-type preferences, and neuromodulatory gradients—that serve as generative blueprints from which full architectures emerge. These fields, inspired by biological development and dynamical systems, encode both structural and functional priors in a compact and evolvable form. We describe practical techniques for deriving modular networks from these fields, introduce variational optimization and constraint-based regularization, and model time-evolving influences through reaction-diffusion equations. GVFT offers a principled bridge between continuous field dynamics and discrete architectural instantiation, enabling new pathways for interpretable and adaptive cognitive systems.
       </p>
     </div>
     
     <section>
-      <h2>Overview and Motivation</h2>
+        <h2>Overview and Motivation</h2>
       <p>
         Neural networks are typically engineered as fixed graphs—collections of layers or modules connected in predefined ways. Even advanced techniques like Neural Architecture Search (NAS), hypernetworks, or Compositional Pattern Producing Networks (CPPNs) operate within discrete design spaces. These systems often lack the flexibility, compositionality, and developmental dynamics seen in biological cognition.
       </p>
@@ -350,7 +351,7 @@
       </section>
       
       <section>
-        <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
+      <h2>3. From Fields to Graphs: Module Instantiation and Connectivity Inference</h2>
         <p>
           To generate discrete neural architectures from continuous fields, we instantiate modules by sampling their positions probabilistically based on the connectivity flow $\mathbf{F}(\mathbf{x}, t)$ and synaptic strength $W(\mathbf{x}, t)$ fields, then infer connectivity weights between them. The probability of placing a module at position $\mathbf{x}$ is defined as:
         </p>
@@ -391,170 +392,218 @@
         </p>
       </section>
 
-  <!-- Updated Section 4 on Optimization -->
-  <section>
-    <h2>4. Optimizing Field Parameters via Task-Driven Gradients</h2>
-    <p>
-      We optimize the field parameters $\theta$ (e.g., neural network weights defining $\Theta$) using a composite loss:
-    </p>
-    <div class="equation-box">
-      $$\mathcal{S}(\theta) = \mathcal{L}_{\text{task}}(\theta) + \mathcal{L}_{\text{reg}}(\theta) + \mathcal{L}_{\text{cross}}(\theta) + \mathcal{L}_{\text{dyn}}(\theta)$$
-    </div>
-    
-    <h3>4.1 Differentiable Field-to-Graph Optimization</h3>
-    <p>
-      The central challenge in optimizing GVFT lies in backpropagating through the continuous-to-discrete instantiation process. We address this through a combination of strategies:
-    </p>
-    
-    <div class="highlight-box">
-      <h4>Overcoming Non-Differentiable Operations</h4>
+      <section>
+        <h2>4. Simulation Study of Core Dynamics</h2>
+        <p>
+            To investigate the behavior of the coupled field dynamics proposed in Section 2.3, we performed numerical simulations. This section details the specific implementation choices, simulation setup, parameter exploration methodology, and key results observed from simulating the interaction of the Connectivity Flow ($\mathbf{F}$), Synaptic Strength ($W$), and Neuromodulatory ($\eta$) fields.
+        </p>
+        
+        <h3>4.1 Simulation Implementation Details</h3>
+        <p>
+            The simulations were conducted on a $100 \times 100$ grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed an explicit Euler method with finite differences to approximate the partial derivatives in the PDEs from Section 2.3. A fixed time step $\Delta t = 1$ was used for the updates (effectively absorbed into the rate constants $D_W, D_F, D_\eta, \lambda_W, \lambda_F, \lambda_\eta$, etc.). The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, and gradients $\nabla W$ were computed using central differences provided by SciPy's `ndimage` library. No-flux boundary conditions were implicitly used via the Laplacian implementation mode. Small amounts of Gaussian noise were added to the $\mathbf{F}$ and $W$ updates at each step to simulate stochastic effects.
+        </p>
+        <p>
+             For the results presented here, we used specific functional forms for the interaction terms in the PDEs presented generally in Section 2.3:
+        </p>
+        <ul>
+            <li>
+                The synaptic strength field update ($\partial_t W$) used:
+                <div class="equation-box">
+                 $$\partial_t W \approx D_W \nabla^2 W - \lambda_W W + \alpha \|\mathbf{F}\| + \eta_{coeff} \eta + \mathcal{N}(0, \sigma_W^2)$$
+                </div>
+                 Here, the term $\alpha \|\mathbf{F}\|$ represents the influence of flow magnitude (replacing the general $\beta_W \sigma(\|\mathbf{F}\|)$ form), and $\eta_{coeff} \eta$ incorporates the neuromodulatory influence with a tunable coefficient $\eta_{coeff}$ (replacing the general external source $S_W$ and direct $\eta$ term). $\alpha$ and $\eta_{coeff}$ are key parameters explored.
+            </li>
+            <li>
+                The connectivity flow field update ($\partial_t \mathbf{F}$) used:
+                 <div class="equation-box">
+                 $$\partial_t \mathbf{F} \approx D_F \nabla^2 \mathbf{F} - \lambda_F \mathbf{F} + \beta_{coupling} \nabla W + \mathcal{N}(0, \sigma_F^2)$$
+                 </div>
+                 Notably, we used a term proportional to the gradient of the synaptic strength field, $\beta_{coupling} \nabla W$, to model the influence of $W$ on $\mathbf{F}$, rather than the direct multiplicative modulation $\gamma_F \mathbf{F} (W-0.5)$ shown in the general equation, as this gradient coupling appeared more effective in initial tests.
+            </li>
+             <li>
+                 The neuromodulatory field update ($\partial_t \eta$) directly implemented the equation from Section 2.3:
+                 <div class="equation-box">
+                 $$\partial_t \eta = D_\eta \nabla^2 \eta - \lambda_\eta \eta + S_\eta$$
+                 $$S_\eta = \frac{1}{2} \left( \|\mathbf{F}\|^2 + W^2 \right)$$
+                 </div>
+                  (No additional noise was added to $\eta$ in the current simulations).
+             </li>
+        </ul>
+         <p> Fields $W$ and $\eta$ were clipped to prevent numerical instability, and $\mathbf{F}$ and $W$ were periodically normalized during the simulation as described in the implementation code (Appendix B - *Placeholder for code link/details*). Modules were placed randomly at the start and kept fixed, as noted in Section 3.
+         </p>
+
+
+        <h3>4.2 Parameter Space Exploration</h3>
+        <p>
+            <em>(Placeholder: Describe the parameter sweeps performed, e.g., the 1D and 2D sweeps exploring $D_F$, $\lambda_W$, $\eta_{coeff}$, $\alpha$. Show and discuss the resulting phase diagrams using metrics like hotspot fraction. Discuss observed sensitivity, saturation, and decay regimes.)</em>
+        </p>
+        <p>
+            Our exploration focused on understanding the influence of the decay rate $\lambda_W$, the flow diffusion $D_F$, the neuromodulatory coupling $\eta_{coeff}$, and the flow-strength coupling $\alpha$. We found that the system exhibits high sensitivity, particularly to $\eta_{coeff}$ and $\alpha$, often resulting in states dominated by saturation (where $W$ reaches maximum values across the grid) or decay (where $W$ tends towards zero), making the identification of regimes with stable, non-trivial patterns challenging.
+        </p>
+        
+        <h3>4.3 Emergent Field Patterns and Graph Dynamics</h3>
+        <p>
+            <em>(Placeholder: Show visualizations from selected full simulation runs from promising parameter regimes (once found!). Discuss the observed patterns in the $\mathbf{F}$, $W$, and $\eta$ fields over time. Analyze the evolution of the generated graph structure based on these fields. Discuss phenomena like pattern stability, travelling waves, competition, feature selectivity, etc., if observed.)</em>
+        </p>
+        <p>
+            Characterizing the specific spatio-temporal patterns and resulting graph topologies that emerge in stable regimes remains an area of ongoing investigation.
+        </p>
+      </section>
+    <section>
+      <h2>5. Optimizing Field Parameters via Task-Driven Gradients</h2>
       <p>
-        Several aspects of the instantiation process are inherently non-differentiable:
+        We optimize the field parameters $\theta$ (e.g., neural network weights defining $\Theta$) using a composite loss:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{S}(\theta) = \mathcal{L}_{\text{task}}(\theta) + \mathcal{L}_{\text{reg}}(\theta) + \mathcal{L}_{\text{cross}}(\theta) + \mathcal{L}_{\text{dyn}}(\theta)$$
+      </div>
+    
+      <h3>5.1 Differentiable Field-to-Graph Optimization</h3> <p>
+        The central challenge in optimizing GVFT lies in backpropagating through the continuous-to-discrete instantiation process. We address this through a combination of strategies:
+      </p>
+      
+      <div class="highlight-box">
+        <h4>Overcoming Non-Differentiable Operations</h4>
+        <p>
+          Several aspects of the instantiation process are inherently non-differentiable:
+        </p>
+        <ul>
+          <li><strong>Module Sampling</strong>: Discrete sampling from the module placement probability distribution</li>
+          <li><strong>Thresholding</strong>: Binary decisions about connection existence</li>
+          <li><strong>Max/Min Operations</strong>: Bounding of connection weights</li>
+        </ul>
+        <p>
+          We employ three complementary techniques to maintain end-to-end differentiability:
+        </p>
+        <ol>
+          <li><strong>Soft Relaxations</strong>: Replacing hard thresholding with sigmoid or softmax approximations</li>
+          <li><strong>Straight-Through Estimation</strong>: Using identity gradients during backpropagation</li>
+          <li><strong>Controlled Stochasticity</strong>: Leveraging the reparameterization trick for sampling operations</li>
+        </ol>
+      </div>
+      
+      <p>
+        The task loss evaluates the performance of the instantiated network:
+      </p>
+      <div class="equation-box">
+        $$\mathcal{L}_{\text{task}}(\theta) = \mathbb{E}_{(\mathbf{x}, y) \sim \mathcal{D}} \left[ \ell(f_{\Theta(\theta)}(\mathbf{x}), y) \right]$$
+      </div>
+      <p>
+        where $f_{\Theta(\theta)}$ is the neural network derived from $\Theta$, and $\ell$ is a task-specific loss (e.g., cross-entropy). During backpropagation, gradients flow from task performance through the instantiated architecture back to the generating fields.
+      </p>
+    
+      <h3>5.2 Training Dynamics and Stability</h3> <p>
+        Field optimization exhibits distinct training dynamics compared to standard neural networks:
       </p>
       <ul>
-        <li><strong>Module Sampling</strong>: Discrete sampling from the module placement probability distribution</li>
-        <li><strong>Thresholding</strong>: Binary decisions about connection existence</li>
-        <li><strong>Max/Min Operations</strong>: Bounding of connection weights</li>
+        <li><strong>Two-Phase Learning</strong>: Initial rapid changes in field topology followed by refinement of existing structures</li>
+        <li><strong>Field-Parameter Co-Adaptation</strong>: Fields and network parameters evolve symbiotically</li>
+        <li><strong>Stabilizing Techniques</strong>: Gradient clipping, learning rate annealing, and regularization term balancing</li>
       </ul>
+      
       <p>
-        We employ three complementary techniques to maintain end-to-end differentiability:
+        We employ a curriculum-based approach where training alternates between:
       </p>
       <ol>
-        <li><strong>Soft Relaxations</strong>: Replacing hard thresholding with sigmoid or softmax approximations</li>
-        <li><strong>Straight-Through Estimation</strong>: Using identity gradients during backpropagation</li>
-        <li><strong>Controlled Stochasticity</strong>: Leveraging the reparameterization trick for sampling operations</li>
+        <li><strong>Architecture Phase</strong>: Updating field parameters with fixed network weights</li>
+        <li><strong>Parameter Phase</strong>: Updating network weights with fixed architecture</li>
+        <li><strong>Joint Phase</strong>: Simultaneous update of both aspects with adaptive weightings</li>
       </ol>
-    </div>
-    
-    <p>
-      The task loss evaluates the performance of the instantiated network:
-    </p>
-    <div class="equation-box">
-      $$\mathcal{L}_{\text{task}}(\theta) = \mathbb{E}_{(\mathbf{x}, y) \sim \mathcal{D}} \left[ \ell(f_{\Theta(\theta)}(\mathbf{x}), y) \right]$$
-    </div>
-    <p>
-      where $f_{\Theta(\theta)}$ is the neural network derived from $\Theta$, and $\ell$ is a task-specific loss (e.g., cross-entropy). During backpropagation, gradients flow from task performance through the instantiated architecture back to the generating fields.
-    </p>
-    
-    <h3>4.2 Training Dynamics and Stability</h3>
-    <p>
-      Field optimization exhibits distinct training dynamics compared to standard neural networks:
-    </p>
-    <ul>
-      <li><strong>Two-Phase Learning</strong>: Initial rapid changes in field topology followed by refinement of existing structures</li>
-      <li><strong>Field-Parameter Co-Adaptation</strong>: Fields and network parameters evolve symbiotically</li>
-      <li><strong>Stabilizing Techniques</strong>: Gradient clipping, learning rate annealing, and regularization term balancing</li>
-    </ul>
-    
-    <p>
-      We employ a curriculum-based approach where training alternates between:
-    </p>
-    <ol>
-      <li><strong>Architecture Phase</strong>: Updating field parameters with fixed network weights</li>
-      <li><strong>Parameter Phase</strong>: Updating network weights with fixed architecture</li>
-      <li><strong>Joint Phase</strong>: Simultaneous update of both aspects with adaptive weightings</li>
-    </ol>
-    
-    <p>
-      This approach dramatically improves convergence rates and stability compared to purely joint optimization, while still discovering architectures that perform significantly better than fixed baselines.
-    </p>
-  </section>
-
-  <!-- Updated Section 5 on Complexity and Scaling -->
-  <section>
-    <h2>5. Complexity, Discretization, and Scaling</h2>
-    
-    <h3>5.1 Computational Complexity Analysis</h3>
-    <p>
-      GVFT's computational requirements scale with several key dimensions:
-    </p>
-    
-    <table>
-      <thead>
-        <tr>
-          <th>Operation</th>
-          <th>Complexity</th>
-          <th>Scaling Factors</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>Field Evaluation</td>
-          <td>$\mathcal{O}(n \cdot s \cdot d)$</td>
-          <td>Number of fields ($n$), sampling points ($s$), spatial dimensions ($d$)</td>
-        </tr>
-        <tr>
-          <td>Dense Graph Construction</td>
-          <td>$\mathcal{O}(m^2 \cdot d)$</td>
-          <td>Number of modules ($m$), spatial dimensions ($d$)</td>
-        </tr>
-        <tr>
-          <td>Sparse Graph Construction</td>
-          <td>$\mathcal{O}(m \cdot k \cdot d)$</td>
-          <td>Number of modules ($m$), neighbors per module ($k$), spatial dimensions ($d$)</td>
-        </tr>
-        <tr>
-          <td>Regularization Computation</td>
-          <td>$\mathcal{O}(n \cdot s \cdot d^2)$</td>
-          <td>Number of fields ($n$), sampling points ($s$), spatial dimensions ($d$)</td>
-        </tr>
-        <tr>
-          <td>Dynamic Field Update</td>
-          <td>$\mathcal{O}(s \cdot t \cdot d^2)$</td>
-          <td>Sampling points ($s$), time steps ($t$), spatial dimensions ($d$)</td>
-        </tr>
-      </tbody>
-    </table>
-    
-    <p>
-      For practical implementations, we employ several optimization strategies:
-    </p>
-    
-    <h3>5.2 Scaling Strategies</h3>
-    <ul>
-      <li><strong>Hierarchical Sampling</strong>: Using adaptive mesh refinement to concentrate sampling points in regions of high field variation</li>
-      <li><strong>Fourier-Domain Computation</strong>: Leveraging FFT for efficient evaluation of certain field types, reducing complexity from $\mathcal{O}(s^2)$ to $\mathcal{O}(s \log s)$</li>
-      <li><strong>Graph Sparsification</strong>: Enforcing a maximum connectivity degree $k \ll m$ through k-nearest neighbor pruning</li>
-      <li><strong>Monte Carlo Integration</strong>: Approximating regularization integrals via importance sampling:
-        <div class="equation-box">
-          $$\int_{\Omega} \|\nabla \phi(\mathbf{x})\|^2 d\mathbf{x} \approx \frac{|\Omega|}{S} \sum_{s=1}^S \|\nabla \phi(\mathbf{x}_s)\|^2 \cdot q(\mathbf{x}_s)$$
-        </div>
-        where $q(\mathbf{x})$ is a learned importance distribution focusing on high-gradient regions</li>
-      <li><strong>GPU Parallelization</strong>: Implementing field evaluations as tensor operations amenable to modern accelerators</li>
-    </ul>
-    
-    <h3>5.3 Practical Scaling Limits</h3>
-    <p>
-      Our empirical analysis identifies several practical scaling constraints:
-    </p>
-    <ul>
-      <li><strong>Spatial Dimensionality</strong>: Performance remains tractable for $d \leq 4$ on commodity hardware; higher dimensions require sparse field representations</li>
-      <li><strong>Module Count</strong>: Full end-to-end differentiability maintained for networks with $m \leq 10^3$ modules; larger networks benefit from hierarchical decomposition</li>
-      <li><strong>Field Complexity</strong>: Using functional approximations with $\mathcal{O}(10^4)$ parameters per field provides sufficient expressivity while maintaining computational efficiency</li>
-    </ul>
-    
-    <p>
-      These scaling properties position GVFT between the efficiency of fixed architectures and the flexibility of unconstrained graph neural networks, with particularly favorable characteristics for medium-scale modular systems (100-1000 modules).
-    </p>
-  </section>
-    
-    <section>
-      <h2>6. Fitting GVFT to and from Biological Connectomes</h2>
-      <h3>6.1 Biological Connectome to GVFT</h3>
+      
       <p>
+        This approach dramatically improves convergence rates and stability compared to purely joint optimization, while still discovering architectures that perform significantly better than fixed baselines.
+      </p>
+    </section>
+
+    <section>
+      <h2>6. Complexity, Discretization, and Scaling</h2>
+      
+      <h3>6.1 Computational Complexity Analysis</h3> <p>
+        GVFT's computational requirements scale with several key dimensions:
+      </p>
+      
+      <table>
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Complexity</th>
+            <th>Scaling Factors</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Field Evaluation</td>
+            <td>$\mathcal{O}(n \cdot s \cdot d)$</td>
+            <td>Number of fields ($n$), sampling points ($s$), spatial dimensions ($d$)</td>
+          </tr>
+          <tr>
+            <td>Dense Graph Construction</td>
+            <td>$\mathcal{O}(m^2 \cdot d)$</td>
+            <td>Number of modules ($m$), spatial dimensions ($d$)</td>
+          </tr>
+          <tr>
+            <td>Sparse Graph Construction</td>
+            <td>$\mathcal{O}(m \cdot k \cdot d)$</td>
+            <td>Number of modules ($m$), neighbors per module ($k$), spatial dimensions ($d$)</td>
+          </tr>
+          <tr>
+            <td>Regularization Computation</td>
+            <td>$\mathcal{O}(n \cdot s \cdot d^2)$</td>
+            <td>Number of fields ($n$), sampling points ($s$), spatial dimensions ($d$)</td>
+          </tr>
+          <tr>
+            <td>Dynamic Field Update</td>
+            <td>$\mathcal{O}(s \cdot t \cdot d^2)$</td>
+            <td>Sampling points ($s$), time steps ($t$), spatial dimensions ($d$)</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <p>
+        For practical implementations, we employ several optimization strategies:
+      </p>
+      
+      <h3>6.2 Scaling Strategies</h3> <ul>
+         <li><strong>Hierarchical Sampling</strong>: Using adaptive mesh refinement to concentrate sampling points in regions of high field variation</li>
+        <li><strong>Fourier-Domain Computation</strong>: Leveraging FFT for efficient evaluation of certain field types, reducing complexity from $\mathcal{O}(s^2)$ to $\mathcal{O}(s \log s)$</li>
+        <li><strong>Graph Sparsification</strong>: Enforcing a maximum connectivity degree $k \ll m$ through k-nearest neighbor pruning</li>
+        <li><strong>Monte Carlo Integration</strong>: Approximating regularization integrals via importance sampling:
+          <div class="equation-box">
+            $$\int_{\Omega} \|\nabla \phi(\mathbf{x})\|^2 d\mathbf{x} \approx \frac{|\Omega|}{S} \sum_{s=1}^S \|\nabla \phi(\mathbf{x}_s)\|^2 \cdot q(\mathbf{x}_s)$$
+          </div>
+          where $q(\mathbf{x})$ is a learned importance distribution focusing on high-gradient regions</li>
+        <li><strong>GPU Parallelization</strong>: Implementing field evaluations as tensor operations amenable to modern accelerators</li>
+      </ul>
+      
+      <h3>6.3 Practical Scaling Limits</h3> <p>
+        Our empirical analysis identifies several practical scaling constraints:
+      </p>
+      <ul>
+         <li><strong>Spatial Dimensionality</strong>: Performance remains tractable for $d \leq 4$ on commodity hardware; higher dimensions require sparse field representations</li>
+        <li><strong>Module Count</strong>: Full end-to-end differentiability maintained for networks with $m \leq 10^3$ modules; larger networks benefit from hierarchical decomposition</li>
+        <li><strong>Field Complexity</strong>: Using functional approximations with $\mathcal{O}(10^4)$ parameters per field provides sufficient expressivity while maintaining computational efficiency</li>
+      </ul>
+      
+      <p>
+        These scaling properties position GVFT between the efficiency of fixed architectures and the flexibility of unconstrained graph neural networks, with particularly favorable characteristics for medium-scale modular systems (100-1000 modules).
+      </p>
+    </section>
+      
+    <section>
+      <h2>7. Fitting GVFT to and from Biological Connectomes</h2>
+      <h3>7.1 Biological Connectome to GVFT</h3> <p>
         Given a biological connectome adjacency matrix $A^{bio}_{ij}$, we optimize field parameters to match the inferred connectivity:
       </p>
       <div class="equation-box">
         $$\min_\theta \sum_{i,j} \left( A^{bio}_{ij} - w_{ij}(\theta) \right)^2$$
       </div>
-      <h3>6.2 GVFT to Neural Architecture</h3>
-      <p>
+      <h3>7.2 GVFT to Neural Architecture</h3> <p>
         From fields $\Theta$, we generate a network with modules $V = \{M_i\}$ and edges $E = \{w_{ij}, \tau_{ij}\}$, as described in Section 3.
       </p>
     </section>
-    
+      
     <section>
-      <h2>7. Future Directions</h2>
+      <h2>8. Future Directions</h2>
       <ul>
         <li>Embedding GVFT in differentiable simulators</li>
         <li>Fitting GVFT to fly brain connectomes</li>
@@ -562,7 +611,7 @@
         <li>Extending to multi-agent interacting field systems</li>
       </ul>
     </section>
-    
+      
     <section class="conclusion">
       <h2>Conclusion</h2>
       <p>
@@ -572,7 +621,7 @@
 
     <section>
       <h2>Appendix A: Comparison with Prior Approaches</h2>
-      <p>This appendix situates GVFT within related architectural paradigms across machine learning and computational neuroscience. It highlights how GVFT generalizes or diverges from prior work in representational form, optimization strategy, and biological plausibility.</p>
+       <p>This appendix situates GVFT within related architectural paradigms across machine learning and computational neuroscience. It highlights how GVFT generalizes or diverges from prior work in representational form, optimization strategy, and biological plausibility.</p>
       <table>
           <thead>
               <tr>
@@ -694,7 +743,7 @@
         Unlike purely abstract computational approaches, GVFT maintains biological plausibility by modeling development-inspired processes like flow fields (analogous to axon guidance) and modulatory fields (analogous to neurotransmitter systems).
       </p>
     </section>
-    
+      
     <section class="references">
       <h2>References</h2>
       <ul>
@@ -707,10 +756,10 @@
         <li>Pham, H., Guan, M. Y., Zoph, B., Le, Q. V., & Dean, J. (2018). Efficient neural architecture search via parameter sharing. <i>International Conference on Machine Learning (ICML)</i>, 4092–4101. (Introduces ENAS)</li>
       </ul>
     </section>
-    
+      
     <script>
+        // Script remains the same
         document.addEventListener('DOMContentLoaded', function() {
-            // Hide loading message once MathJax is fully loaded and rendered
             MathJax.startup.promise.then(function() {
                 document.getElementById('loading').style.display = 'none';
             });
