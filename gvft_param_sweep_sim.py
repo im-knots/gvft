@@ -11,8 +11,8 @@ os.makedirs("figures", exist_ok=True)
 # --- PARAMETERS ---
 grid_size = 100
 timesteps_sweep = 50
-timesteps_sim = 1000
-view_step = 250
+timesteps_sim = 500
+view_step = 50
 num_modules = 10
 top_k = 2
 cos_threshold = 0.2
@@ -48,17 +48,25 @@ def source_field(X, Y, centers, amplitude=1.0, sigma=0.1):
 
 S_W = source_field(X, Y, [(-0.5, -0.5), (0.5, 0.5)], amplitude=0.2, sigma=0.2)
 
+# --- INITIALIZE COMMON STARTING FIELDS ---
+# Generate initial fields that will be reused for all parameter combinations
+potential = gaussian_filter(np.random.randn(grid_size, grid_size), sigma=10)
+Fy_init, Fx_init = np.gradient(potential, y[1] - y[0], x[1] - x[0])
+F_mag_init = np.sqrt(Fx_init**2 + Fy_init**2)
+W_init = 0.6 * 1 / (1 + np.exp(-F_mag_init * 5)) + 0.4 * gaussian_filter(np.random.rand(grid_size, grid_size), sigma=4)
+W_init = (W_init - W_init.min()) / (W_init.max() - W_init.min())
+eta_init = np.zeros_like(W_init)
+
 # --- PARAMETER SWEEP ---
 for i, D_F in enumerate(D_F_values):
     for j, D_eta in enumerate(D_eta_values):
         param_combinations.append((D_F, D_eta))
-        potential = gaussian_filter(np.random.randn(grid_size, grid_size), sigma=10)
-        Fy, Fx = np.gradient(potential, y[1] - y[0], x[1] - x[0])
-        F_mag = np.sqrt(Fx**2 + Fy**2)
-
-        W = 0.6 * 1 / (1 + np.exp(-F_mag * 5)) + 0.4 * gaussian_filter(np.random.rand(grid_size, grid_size), sigma=4)
-        W = (W - W.min()) / (W.max() - W.min())
-        eta = np.zeros_like(W)
+        
+        # Start from the common initial fields
+        Fx = Fx_init.copy()
+        Fy = Fy_init.copy()
+        W = W_init.copy()
+        eta = eta_init.copy()
 
         for t in range(timesteps_sweep):
             F_mag = np.sqrt(Fx**2 + Fy**2)
@@ -101,12 +109,11 @@ plt.close()
 
 # --- RUN FULL SIMULATION FOR EACH PARAM COMBINATION ---
 for idx, (D_F, D_eta) in enumerate(selected_params):
-    potential = gaussian_filter(np.random.randn(grid_size, grid_size), sigma=10)
-    Fy_0, Fx_0 = np.gradient(potential, y[1] - y[0], x[1] - x[0])
-    F_mag_0 = np.sqrt(Fx_0**2 + Fy_0**2)
-    W_0 = 0.6 * 1 / (1 + np.exp(-F_mag_0 * 5)) + 0.4 * gaussian_filter(np.random.rand(grid_size, grid_size), sigma=4)
-    W_0 = (W_0 - W_0.min()) / (W_0.max() - W_0.min())
-    eta_0 = np.zeros_like(W_0)
+    # Use the same initial conditions for all simulations
+    Fx_0 = Fx_init.copy()
+    Fy_0 = Fy_init.copy()
+    W_0 = W_init.copy()
+    eta_0 = eta_init.copy()
 
     Fx_series, Fy_series, W_series, eta_series, Graphs = [Fx_0.copy()], [Fy_0.copy()], [W_0.copy()], [eta_0.copy()], []
 
