@@ -403,7 +403,10 @@
             The simulations were conducted on a $100 \times 100$ grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed an explicit Euler method with finite differences to approximate the partial derivatives in the PDEs from Section 2.3. A fixed time step $\Delta t = 1$ was used for the updates (effectively absorbed into the rate constants $D_W, D_F, D_\eta, \lambda_W, \lambda_F, \lambda_\eta$, etc.). The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, and gradients $\nabla W$ were computed using central differences provided by SciPy's `ndimage` library. No-flux boundary conditions were implicitly used via the Laplacian implementation mode. Small amounts of Gaussian noise were added to the $\mathbf{F}$ and $W$ updates at each step to simulate stochastic effects.
         </p>
         <p>
-             For the results presented here, we used specific functional forms for the interaction terms in the PDEs presented generally in Section 2.3:
+            The coupled PDE system exhibits stiffness due to the presence of multiple time scales: rapid decay and reaction terms (e.g., $-\lambda_W W$, $\alpha \|\mathbf{F}\|$ in the $W$ update) contrast with slower diffusion processes (e.g., $D_W \nabla^2 W$). This stiffness can lead to numerical instability with the explicit Euler method, potentially contributing to the observed saturation or decay regimes. Future work will explore implicit or semi-implicit solvers, such as the Crank-Nicolson scheme, to improve stability and better capture the system's dynamics.
+        </p>
+        <p>
+            For the results presented here, we used specific functional forms for the interaction terms in the PDEs presented generally in Section 2.3:
         </p>
         <ul>
             <li>
@@ -431,14 +434,32 @@
         </ul>
          <p> Fields $W$ and $\eta$ were clipped to prevent numerical instability, and $\mathbf{F}$ and $W$ were periodically normalized during the simulation as described in the implementation code (Appendix B - *Placeholder for code link/details*). Modules were placed randomly at the start and kept fixed, as noted in Section 3.
          </p>
-
-
+    
         <h3>4.2 Parameter Space Exploration</h3>
         <p>
             <em>(Placeholder: Describe the parameter sweeps performed, e.g., the 1D and 2D sweeps exploring $D_F$, $\lambda_W$, $\eta_{coeff}$, $\alpha$. Show and discuss the resulting phase diagrams using metrics like hotspot fraction. Discuss observed sensitivity, saturation, and decay regimes.)</em>
         </p>
         <p>
             Our exploration focused on understanding the influence of the decay rate $\lambda_W$, the flow diffusion $D_F$, the neuromodulatory coupling $\eta_{coeff}$, and the flow-strength coupling $\alpha$. We found that the system exhibits high sensitivity, particularly to $\eta_{coeff}$ and $\alpha$, often resulting in states dominated by saturation (where $W$ reaches maximum values across the grid) or decay (where $W$ tends towards zero), making the identification of regimes with stable, non-trivial patterns challenging.
+        </p>
+        <p>
+            To systematically guide our parameter selection and target regimes likely to produce pattern formation, we employed dimensional analysis by identifying key dimensionless ratios that govern the balance of competing effects in the system. We focused on three ratios: (1) the diffusion-to-decay ratio, (2) the feedback-to-decay ratio for $W$, and (3) the coupling-to-decay ratio for $\mathbf{F}$. The spatial step size is $\Delta x = 2 / (grid\_size - 1) = 2 / 99 \approx 0.0202$, so $\Delta x^2 \approx 0.000408$. For $W$, the diffusion-to-decay ratio is defined as:
+            <div class="equation-box">
+            $$R_W = \frac{D_W}{\lambda_W \Delta x^2}$$
+            </div>
+            In the initial sweeps, $D_W = 0.03$ and $\lambda_W$ ranged from 0.05 to 0.25, yielding $R_W$ from $1471$ (at $\lambda_W = 0.05$) to $294$ (at $\lambda_W = 0.25$), indicating that diffusion dominates decay, contributing to the observed uniform states. Similar ratios for $\mathbf{F}$ and $\eta$ were also large: $R_F = D_F / (\lambda_F \Delta x^2)$ ranged from $3501$ to $21007$ ($D_F$ from 0.01 to 0.06, $\lambda_F = 0.007$), and $R_\eta = D_\eta / (\lambda_\eta \Delta x^2) = 490$ ($D_\eta = 0.02$, $\lambda_\eta = 0.1$). To encourage pattern formation, we targeted $R_W \approx 5$, leading to a new $D_W$ range:
+            <div class="equation-box">
+            $$\frac{D_W}{\lambda_W \times 0.000408} = 5 \implies D_W = 5 \times 0.000408 \times \lambda_W = 0.00204 \lambda_W$$
+            </div>
+            For $\lambda_W$ from 0.05 to 0.25, this gives $D_W$ from 0.0001 to 0.0005. Similarly, $R_F \approx 5$ yields $D_F \approx 0.000014$, and $R_\eta \approx 5$ gives $D_\eta \approx 0.0002$. Next, the feedback-to-decay ratio for $W$ is:
+            <div class="equation-box">
+            $$F_W = \frac{\alpha + \eta_{coeff} |\eta_{\text{max}}|}{\lambda_W |W_{\text{max}}|}$$
+            </div>
+            With $|\eta_{\text{max}}| = 5$ (due to clipping), $|W_{\text{max}}| = 2$ (due to normalization), initial $\alpha = 0.8$, and $\eta_{coeff} = 0.05$, we have $\alpha + \eta_{coeff} |\eta_{\text{max}}| = 0.8 + 0.05 \times 5 = 1.05$. For $\lambda_W = 0.05$, $F_W = 1.05 / (0.05 \times 2) = 10.5$, and for $\lambda_W = 0.25$, $F_W = 2.1$, indicating feedback dominates decay, leading to saturation. Targeting $F_W \approx 1$, we adjusted $\alpha$ from 0.1 to 0.5 and $\eta_{coeff}$ from 0.01 to 0.1. Finally, the coupling-to-decay ratio for $\mathbf{F}$ is:
+            <div class="equation-box">
+            $$C_F = \frac{\beta_{coupling} |\nabla W|_{\text{max}}}{\lambda_F |\mathbf{F}|_{\text{max}}|}$$
+            </div>
+            With $|\mathbf{F}|_{\text{max}}| = 1$, $|\nabla W|_{\text{max}} \approx 4 / \Delta x \approx 198$ (since $W \in [-2, 2]$ over a domain of size 2), $\beta_{coupling} = 0.1$, and $\lambda_F = 0.007$, we get $C_F \approx 2829$, suggesting overly strong coupling. Targeting $C_F \approx 5$ gives $\beta_{coupling} \approx 0.0002$. These new parameter regimes (e.g., $D_W$ from 0.0001 to 0.0005, $D_F \approx 0.000014$, $\alpha$ from 0.1 to 0.5) aim to balance diffusion, decay, and feedback, with ongoing sweeps to identify regimes where stable patterns, such as localized hotspots or waves, emerge.
         </p>
         
         <h3>4.3 Emergent Field Patterns and Graph Dynamics</h3>
@@ -448,7 +469,7 @@
         <p>
             Characterizing the specific spatio-temporal patterns and resulting graph topologies that emerge in stable regimes remains an area of ongoing investigation.
         </p>
-      </section>
+    </section>
     <section>
       <h2>5. Optimizing Field Parameters via Task-Driven Gradients</h2>
       <p>
