@@ -395,53 +395,50 @@
       <section>
         <h2>4. Simulation Study of Core Dynamics</h2>
           <p>
-              To investigate the behavior of the coupled field dynamics proposed in Section 2.3, we performed numerical simulations. This section details the specific implementation choices, simulation setup, parameter exploration methodology, and key results observed from simulating the interaction of the Connectivity Flow ($\mathbf{F}$), Synaptic Strength ($W$), and Neuromodulatory ($\eta$) fields.
+            To investigate the behavior of the coupled field dynamics proposed in Section 2.3, we performed numerical simulations to analyze how different parameter combinations affect the emergence of structured patterns across the three field types. This section details the implementation, parameter exploration, and key observations from our initial simulation studies.
           </p>
           
           <h3>4.1 Simulation Implementation Details</h3>
-          <p> The simulations were conducted on a $100 \times 100$ grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed the second-order accurate Crank-Nicolson method for time integration, using finite differences for spatial derivatives. This implicit method enhances numerical stability compared to the explicit Euler scheme. The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, represented as a sparse matrix $\mathbf{L}$, and gradients $\nabla W$ were computed using central differences. No-flux boundary conditions were implicitly handled by the structure of $\mathbf{L}$. The discretized system for a generic field $\phi$ takes the form:
-          </p>
-          <div class="equation-box">
-             $$(\mathbf{I} - \frac{\Delta t}{2} \mathbf{M}_\phi) \phi^{n+1} = (\mathbf{I} + \frac{\Delta t}{2} \mathbf{M}_\phi) \phi^{n} + \Delta t \cdot \text{Source}^{n+1/2}$$
-          </div>
           <p>
-              where $\phi^n$ is the flattened vector of field values at time $n$, $\mathbf{I}$ is the identity matrix, $\mathbf{M}_\phi$ incorporates the diffusion and linear decay terms (e.g., $D_\phi \mathbf{L} - \lambda_\phi \mathbf{I}$), and $\text{Source}^{n+1/2}$ represents the non-linear source and coupling terms, evaluated appropriately for the Crank-Nicolson scheme (often approximated at time $n$ or $n+1/2$). This linear system was solved at each time step using sparse linear algebra routines (`scipy.sparse.linalg.spsolve`). A time step $\Delta t = 1.0$ was used.
+            The simulations were conducted on a 200×200 grid representing the spatial domain $\Omega = [-1, 1]^2$. We employed the second-order accurate Crank-Nicolson method for time integration, using finite differences for spatial derivatives. This implicit method enhances numerical stability compared to explicit Euler schemes. The spatial Laplacian $\nabla^2$ was approximated using a standard 5-point stencil, with no-flux boundary conditions implemented through the structure of the discretized operator.
           </p>
           <p>
-               For the results presented here, we implemented specific functional forms for the interaction terms based on the general equations in Section 2.3:
+            For efficient computation, we implemented the following update scheme for each field:
           </p>
           <ul>
-              <li>
-                  The synaptic strength field update ($\partial_t W$) used the source term: $ \alpha \|\mathbf{F}\| + \eta_{coeff} \eta + \mathcal{N}(0, \sigma_W^2) $. The parameters $\alpha$ and $\eta_{coeff}$ were varied during exploration.
-              </li>
-              <li>
-                  The connectivity flow field update ($\partial_t \mathbf{F}$) used the coupling term: $ \beta_{coupling} \nabla W + \mathcal{N}(0, \sigma_F^2) $. This use of the gradient $\nabla W$ differs from the direct modulation by $W$ in the general form (Eq. X) and was chosen based on preliminary implementation tests.
-              </li>
-               <li>
-                   The neuromodulatory field update ($\partial_t \eta$) directly implemented the source term $S_\eta = \frac{1}{2} ( \|\mathbf{F}\|^2 + W^2 )$ as defined in Section 2.3.
-               </li>
+            <li><strong>Synaptic strength field update:</strong> $\partial_t W = D_W \nabla^2 W - \lambda_W W + \alpha \|\mathbf{F}\| + \eta_{coeff} \eta + \mathcal{N}(0, \sigma_W^2)$</li>
+            <li><strong>Connectivity flow field update:</strong> $\partial_t \mathbf{F} = D_F \nabla^2 \mathbf{F} - \lambda_F \mathbf{F} + \beta_{coupling} \nabla W + \mathcal{N}(0, \sigma_F^2)$</li>
+            <li><strong>Neuromodulatory field update:</strong> $\partial_t \eta = D_\eta \nabla^2 \eta - \lambda_\eta \eta + S_\eta$, where $S_\eta = \frac{1}{2} ( \|\mathbf{F}\|^2 + W^2 )$</li>
           </ul>
-           <p> Fields $W$ and $\eta$ were clipped, and $\mathbf{F}$ and $W$ were periodically normalized as detailed previously. Crucially, module positions $\mathbf{r}_i(t)$ were resampled at each timestep based on the current fields $\mathbf{F}$ and $W$ using the probability distribution defined in Section 3. The parameter sweeps and simulation runs were parallelized using Python's `multiprocessing` library to improve throughput. Further details on parameter values used for specific results are provided in Appendix B (*Placeholder*).
-           </p>
-  
-  
-          <h3>4.2 Parameter Space Exploration</h3>
           <p>
-              <em>(Placeholder: Describe the parameter sweeps performed, e.g., the 1D and 2D sweeps exploring $D_F$, $\lambda_W$, $\eta_{coeff}$, $\alpha$. Show and discuss the resulting phase diagrams using metrics like hotspot fraction. Discuss observed sensitivity, saturation, and decay regimes.)</em>
-          </p>
-          <p>
-              Our exploration focused on understanding the influence of the decay rate $\lambda_W$, the flow diffusion $D_F$, the neuromodulatory coupling $\eta_{coeff}$, and the flow-strength coupling $\alpha$. We found that the system exhibits high sensitivity, particularly to $\eta_{coeff}$ and $\alpha$, often resulting in states dominated by saturation (where $W$ reaches maximum values across the grid) or decay (where $W$ tends towards zero), making the identification of regimes with stable, non-trivial patterns challenging.
+            Module positions were dynamically resampled at each timestep based on the probability distribution defined in Section 3, with connectivity weights computed according to cosine similarity between flow field direction and inter-module vectors, scaled by local synaptic strength.
           </p>
           
-          <h3>4.3 Emergent Field Patterns and Graph Dynamics</h3>
+          <h3>4.2 Parameter Space Exploration with Uniform Priors</h3>
           <p>
-              <em>(Placeholder: Show visualizations from selected full simulation runs from promising parameter regimes (once found!). Discuss the observed patterns in the $\mathbf{F}$, $W$, and $\eta$ fields over time. Analyze the evolution of the generated graph structure and the dynamically moving modules based on these fields. Discuss phenomena like pattern stability, travelling waves, competition, feature selectivity, etc., if observed.)</em>
+            Our initial investigations employed uniform (flat) prior distributions for all fields, initialized with minimal structure. We conducted a systematic parameter sweep across two key dimensions: the synaptic strength decay rate ($\lambda_W$) and flow field diffusion coefficient ($D_F$), while maintaining constant values for other parameters ($\lambda_\eta = 0.10$, $\eta_{coeff} = 0.050$).
           </p>
           <p>
-              Characterizing the specific spatio-temporal patterns and resulting graph topologies that emerge in stable regimes remains an area of ongoing investigation.
+            The resulting phase diagram reveals a clear gradient in pattern formation behavior across the parameter space. At low values of $D_F$, minimal hotspot activity is observed regardless of the $\lambda_W$ value, indicating either rapid decay or insufficient structure formation. As $D_F$ increases, we observe a monotonic increase in the fraction of grid points where $W$ exceeds the threshold value of 1.5 ("hotspot fraction"). This relationship holds across the entire range of $\lambda_W$ values tested, suggesting that flow field diffusion plays a dominant role in pattern formation under these conditions.
+          </p>
+          <p>
+            While these parameter sweeps revealed clear transitions in pattern density, the emergent structures with uniform priors exhibited limited complexity. The patterns showed regular hotspot formation but lacked the rich spatial organization and functional modularity we would expect in biologically relevant systems. This observation motivated our subsequent work toward incorporating non-uniform, biologically informed priors.
           </p>
           
+          <h3>4.3 Limitations of Uniform Prior Simulations</h3>
+          <p>
+            Detailed examination of the full simulation runs revealed several limitations of the uniform prior approach:
+          </p>
+          <ul>
+            <li><strong>Limited Pattern Diversity:</strong> The emergent patterns tended toward simple geometric arrangements rather than the complex, hierarchical structures observed in biological neural systems.</li>
+            <li><strong>Weak Field Coupling:</strong> The coupling between fields, while mathematically sufficient to drive pattern formation, failed to produce strong functional dependencies that would support modular information processing.</li>
+            <li><strong>Absence of Functional Motifs:</strong> The resulting architectures lacked recognizable computational motifs such as feedforward chains, recurrent circuits, or center-surround organizations common in biological neural systems.</li>
+          </ul>
+          <p>
+            These observations highlight the importance of informed prior distributions in guiding the emergence of functionally relevant architectural patterns. While the flat prior simulations provided valuable insights into the basic dynamics of the GVFT system, they underscored the need for biologically grounded initialization to achieve patterns with greater functional relevance.
+          </p>
       </section>
+
     <section>
       <h2>5. Optimizing Field Parameters via Task-Driven Gradients</h2>
       <p>
@@ -584,14 +581,63 @@
       
     <section>
       <h2>7. Fitting GVFT to and from Biological Connectomes</h2>
-      <h3>7.1 Biological Connectome to GVFT</h3> <p>
-        Given a biological connectome adjacency matrix $A^{bio}_{ij}$, we optimize field parameters to match the inferred connectivity:
+      <p>
+        A key application of GVFT is its ability to bridge between discrete neural architecture descriptions (such as connectomes) and continuous field representations. This section describes our approach to establishing this bidirectional mapping, with a focus on extracting field representations from biological connectome data.
       </p>
-      <div class="equation-box">
-        $$\min_\theta \sum_{i,j} \left( A^{bio}_{ij} - w_{ij}(\theta) \right)^2$$
-      </div>
-      <h3>7.2 GVFT to Neural Architecture</h3> <p>
-        From fields $\Theta$, we generate a network with modules $V = \{M_i\}$ and edges $E = \{w_{ij}, \tau_{ij}\}$, as described in Section 3.
+      
+      <h3>7.1 Extracting GVFT Fields from Biological Data</h3>
+      <p>
+        To address the limitations of uniform prior simulations identified in Section 4, we developed a pipeline to extract GVFT fields from structured biological neural network data. This pipeline targets NeuroML2 format files, which provide standardized representations of neural circuits including cell types, connectivity, and synaptic properties.
+      </p>
+      <p>
+        The extraction pipeline follows three main stages:
+      </p>
+      <ol>
+        <li><strong>Connectome Analysis:</strong> The system parses the NeuroML specification to extract neural populations, connection weights, synaptic properties (including excitatory/inhibitory classification and conduction delays), and cell type information.</li>
+        <li><strong>Spatial Embedding:</strong> For networks without explicit spatial coordinates, the system performs synthetic spatial embedding based on connectivity patterns, using techniques from graph drawing and community detection to position neurons in a meaningful 2D representation.</li>
+        <li><strong>Multi-Scale Field Generation:</strong> The system computes multiple field representations from the embedded connectome:
+          <ul>
+            <li><strong>Flow Field ($\mathbf{F}$):</strong> Generated by analyzing directional connectivity patterns between neural communities and computing their gradients.</li>
+            <li><strong>Synaptic Strength Field ($W$):</strong> Created by placing Gaussian kernels at neuron positions, weighted by centrality measures and cell-type importance.</li>
+            <li><strong>Neuromodulatory Field ($\eta$):</strong> Derived from simulated activity patterns and connection densities across the network.</li>
+            <li><strong>Community Field:</strong> A supplementary representation that encodes the modular organization of the network based on community detection algorithms.</li>
+          </ul>
+        </li>
+      </ol>
+      <p>
+        This approach has been successfully applied to C. elegans pharyngeal nervous system data, generating field representations that capture both the structural and functional characteristics of the original biological network. The extracted fields show non-uniform, structured patterns that reflect the underlying organization of the biological circuit, including functional clustering, directed information flow, and heterogeneous connectivity densities.
+      </p>
+      
+      <h3>7.2 From Biological Priors to GVFT Simulations</h3>
+      <p>
+        The extracted biological field representations serve as informed priors for GVFT simulations, replacing the uniform initialization used in our preliminary work. These biologically grounded priors are expected to guide the field dynamics toward functionally relevant patterns and architectural motifs.
+      </p>
+      <p>
+        Our planned simulation studies will examine how these biologically informed priors influence:
+      </p>
+      <ul>
+        <li>The emergence and stability of functional architectural motifs</li>
+        <li>The parameter regions supporting biologically plausible dynamics</li>
+        <li>The transfer of structural and functional properties from source biological networks to synthetic architectures</li>
+      </ul>
+      <p>
+        Preliminary analyses suggest that the biologically extracted priors contain rich structure at multiple spatial scales, potentially supporting the emergence of hierarchical processing architectures similar to those observed in biological neural systems.
+      </p>
+      
+      <h3>7.3 GVFT to Neural Architecture</h3>
+      <p>
+        The inverse process—deriving plausible neural architectures from GVFT fields—follows the procedure detailed in Section 3. Given fields $\Theta$, we generate a network with modules $V = \{M_i\}$ and edges $E = \{w_{ij}, \tau_{ij}\}$ by probabilistically sampling module positions based on field values and computing connectivity according to flow alignment and synaptic strength.
+      </p>
+      <p>
+        This bidirectional mapping between connectomic data and field representations enables several novel applications:
+      </p>
+      <ul>
+        <li><strong>Compression:</strong> Representing complex connectomes in a compact, continuous form that captures essential structural and functional properties</li>
+        <li><strong>Controlled Variation:</strong> Generating families of related architectures by applying transformations to the field representations</li>
+        <li><strong>Cross-Scale Transfer:</strong> Translating architectural principles across different scales and modalities through field-mediated representations</li>
+      </ul>
+      <p>
+        Future work will focus on quantifying the fidelity of this bidirectional mapping and developing optimization techniques to improve the reconstruction of functional properties when translating between discrete and continuous representations.
       </p>
     </section>
       
