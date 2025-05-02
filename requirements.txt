@@ -2,4 +2,7 @@ matplotlib
 numpy
 scipy
 seaborn
-cupy-cuda12x
+torch
+nvidia-ml-py3
+lxml
+networkx
