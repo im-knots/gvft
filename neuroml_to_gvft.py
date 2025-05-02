@@ -11,19 +11,37 @@ import networkx as nx
 # ------- Top-Level Defaults (Constants) -------
 DEFAULT_GRID_SIZE = 200
 DEFAULT_DOMAIN_BOUNDS = [(-1, 1), (-1, 1)]
-DEFAULT_SIGMA_FLOW_POTENTIAL = 10.0
+DEFAULT_SIGMA_FLOW_POTENTIAL = 15.0
 DEFAULT_SIGMA_STRENGTH_DENSITY = 10.0
 DEFAULT_SIGMA_ETA_DENSITY = 15.0
-DEFAULT_CONNECTION_WEIGHT_SCALE = 2.0
+DEFAULT_CONNECTION_WEIGHT_SCALE = 5.0
 DEFAULT_ACTIVITY_THRESHOLD = 0.05
 DEFAULT_OUTPUT_FORMATS = ['npy', 'png']
+
+# Neuron type weights for strength field
+NEURON_TYPE_WEIGHTS = {
+    'motor': 1.5,
+    'sensory': 1.0,
+    'interneuron': 0.8,
+    'default': 1.0
+}
 
 # =====================================================
 # Function Definitions
 # =====================================================
 
+def clean_neuron_id(raw_id, population):
+    """Clean NeuroML neuron ID from ../<pop>/index/<comp> to <pop>_<index>."""
+    if raw_id and '../' in raw_id:
+        # Format: ../<population>/index/<component>
+        parts = raw_id.split('/')
+        if len(parts) >= 3:
+            index = parts[-2]  # The index is the second-to-last part
+            return f"{population}_{index}"
+    return f"{population}_{raw_id}"
+
 def parse_neuroml2_file(filename):
-    """Parse a NeuroML2 file and extract neural populations and connections."""
+    """Parse a NeuroML2 file and extract neural populations, connections, and synaptic properties."""
     print(f"Parsing {filename}...")
     try:
         with open(filename, 'rb') as f:
@@ -40,18 +58,33 @@ def parse_neuroml2_file(filename):
                 print("Warning: Could not automatically detect NeuroML v2 namespace. Assuming standard 'neuroml' prefix.")
                 nsmap['neuroml'] = 'http://www.neuroml.org/schema/neuroml2'
 
+        # Extract neurons with types
         neurons = {}
         for population in root.xpath('//neuroml:population', namespaces=nsmap):
             pop_id = population.get('id')
-            component_type = population.get('component', pop_id)
+            component_type = population.get('component', pop_id).lower()
             size = int(population.get('size', 1))
+            neuron_type = 'motor' if 'motor' in component_type else 'sensory' if 'sensory' in component_type else 'interneuron' if 'inter' in component_type else 'default'
             for i in range(size):
                 neuron_id = f"{pop_id}_{i}"
-                neurons[neuron_id] = {'type': component_type}
+                neurons[neuron_id] = {'type': neuron_type}
 
+        # Extract synaptic properties
+        synapse_types = {}
+        for synapse in root.xpath('//neuroml:expTwoSynapse', namespaces=nsmap):
+            syn_id = synapse.get('id')
+            tau_rise = float(synapse.get('tauRise', 0.1))
+            tau_decay = float(synapse.get('tauDecay', 0.5))
+            synapse_types[syn_id] = {'delay': (tau_rise + tau_decay) / 2, 'excitatory': True}
+        for synapse in root.xpath('//neuroml:inhSynapse', namespaces=nsmap):
+            syn_id = synapse.get('id')
+            tau = float(synapse.get('tau', 0.5))
+            synapse_types[syn_id] = {'delay': tau, 'excitatory': False}
+
+        # Extract connections with synaptic properties
         connections = []
         for projection in root.xpath('//neuroml:projection', namespaces=nsmap):
-            synapse_type_proj = projection.get('synapse')
+            synapse_type = projection.get('synapse')
             presynaptic_pop = projection.get('presynapticPopulation')
             postsynaptic_pop = projection.get('postsynapticPopulation')
             if not presynaptic_pop or not postsynaptic_pop:
@@ -59,12 +92,11 @@ def parse_neuroml2_file(filename):
             for conn in projection.xpath('.//neuroml:connection', namespaces=nsmap):
                 pre_id_raw = conn.get('preCellId')
                 post_id_raw = conn.get('postCellId')
-                pre_inst_id = pre_id_raw if pre_id_raw else '0'
-                post_inst_id = post_id_raw if post_id_raw else '0'
-                pre_cell_id = f"{presynaptic_pop}_{pre_inst_id}"
-                post_cell_id = f"{postsynaptic_pop}_{post_inst_id}"
+                pre_cell_id = clean_neuron_id(pre_id_raw, presynaptic_pop) if pre_id_raw else f"{presynaptic_pop}_0"
+                post_cell_id = clean_neuron_id(post_id_raw, postsynaptic_pop) if post_id_raw else f"{postsynaptic_pop}_0"
                 weight = float(conn.get('weight', 1.0)) * DEFAULT_CONNECTION_WEIGHT_SCALE
-                connections.append((pre_cell_id, post_cell_id, weight))
+                syn_props = synapse_types.get(synapse_type, {'delay': 0.5, 'excitatory': True})
+                connections.append((pre_cell_id, post_cell_id, weight, syn_props['delay'], syn_props['excitatory']))
 
         for electrical in root.xpath('//neuroml:electricalProjection', namespaces=nsmap):
             presynaptic_pop = electrical.get('presynapticPopulation')
@@ -72,12 +104,12 @@ def parse_neuroml2_file(filename):
             if not presynaptic_pop or not postsynaptic_pop:
                 continue
             for conn in electrical.xpath('.//neuroml:electricalConnection', namespaces=nsmap):
-                pre_inst_id = conn.get('preCell') or conn.get('preCellId', '0')
-                post_inst_id = conn.get('postCell') or conn.get('postCellId', '0')
-                pre_cell_id = f"{presynaptic_pop}_{pre_inst_id}"
-                post_cell_id = f"{postsynaptic_pop}_{post_inst_id}"
+                pre_id_raw = conn.get('preCell') or conn.get('preCellId')
+                post_id_raw = conn.get('postCell') or conn.get('postCellId')
+                pre_cell_id = clean_neuron_id(pre_id_raw, presynaptic_pop) if pre_id_raw else f"{presynaptic_pop}_0"
+                post_cell_id = clean_neuron_id(post_id_raw, postsynaptic_pop) if post_id_raw else f"{postsynaptic_pop}_0"
                 conductance = float(conn.get('weight', 1.0)) * DEFAULT_CONNECTION_WEIGHT_SCALE
-                connections.append((pre_cell_id, post_cell_id, conductance))
+                connections.append((pre_cell_id, post_cell_id, conductance, 0.1, True))
 
         print(f"Successfully parsed {len(neurons)} neurons and {len(connections)} connections.")
         return {'neurons': neurons, 'connections': connections}
@@ -113,6 +145,21 @@ def assign_synthetic_positions(neurons):
     
     return neurons_2d
 
+def simulate_activity(G, num_steps=100):
+    """Simulate simple firing rate activity to estimate correlations."""
+    firing_rates = {node: 0.1 for node in G.nodes()}
+    print("Nodes in graph:", list(G.nodes()))  # Debugging
+    for _ in range(num_steps):
+        new_rates = firing_rates.copy()
+        for node in G.nodes():
+            neighbors = list(G.predecessors(node))  # Use predecessors for DiGraph
+            if neighbors:
+                print(f"Neighbors of {node}: {neighbors}")  # Debugging
+                incoming = sum(firing_rates[n] * G[n][node]['weight'] for n in neighbors)
+                new_rates[node] = max(0, min(1, 0.1 * incoming + 0.9 * firing_rates[node]))
+        firing_rates = new_rates
+    return firing_rates
+
 def place_gaussian(field, center_ix, center_iy, sigma, weight=1.0):
     """Places a Gaussian kernel onto the field."""
     grid_size = field.shape[0]
@@ -131,7 +178,7 @@ def place_gaussian(field, center_ix, center_iy, sigma, weight=1.0):
     return field
 
 def generate_multi_scale_fields(neurons_2d, connections, config):
-    """Generate GVFT fields using multi-scale feature extraction."""
+    """Generate GVFT fields using multi-scale feature extraction with dynamics."""
     grid_size = config['grid_size']
     domain_bounds = config['domain_bounds']
     sigma_flow_potential = config['sigma_flow_potential']
@@ -144,20 +191,23 @@ def generate_multi_scale_fields(neurons_2d, connections, config):
         return None
 
     # Build graph for analysis
-    G = nx.Graph()
-    for pre_id, post_id, weight in connections:
-        G.add_edge(pre_id, post_id, weight=weight)
+    G = nx.DiGraph()
+    for pre_id, post_id, weight, delay, excitatory in connections:
+        G.add_edge(pre_id, post_id, weight=weight, delay=delay, excitatory=excitatory)
 
     # Calculate centrality measures
     degree_centrality = nx.degree_centrality(G)
     betweenness_centrality = nx.betweenness_centrality(G)
 
     # Perform community detection
-    communities = list(nx.community.louvain_communities(G, resolution=1.0))
+    communities = list(nx.community.louvain_communities(G.to_undirected(), resolution=1.0))
     community_map = {}
     for idx, comm in enumerate(communities):
         for neuron_id in comm:
             community_map[neuron_id] = idx
+
+    # Simulate activity
+    firing_rates = simulate_activity(G)
 
     # Map neurons to grid indices
     neuron_indices = {}
@@ -178,20 +228,22 @@ def generate_multi_scale_fields(neurons_2d, connections, config):
     eta_density = np.zeros((grid_size, grid_size))
     community_field = np.zeros((grid_size, grid_size))
 
-    # Strength field with centrality weighting
+    # Strength field with centrality and neuron type weighting
     for neuron_id, (i_x, i_y) in neuron_indices.items():
         centrality_score = (degree_centrality.get(neuron_id, 0) + betweenness_centrality.get(neuron_id, 0)) / 2
-        strength_density = place_gaussian(strength_density, i_x, i_y, sigma_strength_density, weight=centrality_score * 2)
+        type_weight = NEURON_TYPE_WEIGHTS.get(neurons_2d[neuron_id]['type'], 1.0)
+        strength_density = place_gaussian(strength_density, i_x, i_y, sigma_strength_density, weight=centrality_score * type_weight * 2)
 
-    # Neuromodulatory field from connection density
+    # Neuromodulatory field with activity modulation
     connection_count = 0
-    for pre_id, post_id, weight in connections:
+    for pre_id, post_id, weight, delay, excitatory in connections:
         if pre_id in neuron_indices and post_id in neuron_indices:
             pre_ix, pre_iy = neuron_indices[pre_id]
             post_ix, post_iy = neuron_indices[post_id]
             mid_ix = int((pre_ix + post_ix) / 2)
             mid_iy = int((pre_iy + post_iy) / 2)
-            eta_density = place_gaussian(eta_density, mid_ix, mid_iy, sigma_eta_density / 2.0, weight=abs(weight))
+            activity_weight = (firing_rates.get(pre_id, 0.1) + firing_rates.get(post_id, 0.1)) / 2
+            eta_density = place_gaussian(eta_density, mid_ix, mid_iy, sigma_eta_density / (1 + delay), weight=abs(weight) * activity_weight)
             connection_count += 1
     print(f"Processed {connection_count} connections.")
 
@@ -200,7 +252,7 @@ def generate_multi_scale_fields(neurons_2d, connections, config):
         if neuron_id in community_map:
             community_field = place_gaussian(community_field, i_x, i_y, sigma_strength_density, weight=community_map[neuron_id] + 1)
 
-    # Flow field between community centroids
+    # Flow field between community centroids with synaptic directionality
     community_centroids = {}
     for comm_idx, community in enumerate(communities):
         x_coords = [neuron_indices[nid][0] for nid in community if nid in neuron_indices]
@@ -218,11 +270,18 @@ def generate_multi_scale_fields(neurons_2d, connections, config):
                 dx = (end_x - start_x) / max(1, abs(end_x - start_x)) if start_x != end_x else 0
                 dy = (end_y - start_y) / max(1, abs(end_y - start_y)) if start_y != end_y else 0
                 steps = int(max(abs(end_x - start_x), abs(end_y - start_y), 5))
+                net_flow = 0
+                for pre_id in communities[i]:
+                    for post_id in communities[j]:
+                        if G.has_edge(pre_id, post_id):
+                            edge_data = G[pre_id][post_id]
+                            flow_contrib = edge_data['weight'] * (1 if edge_data['excitatory'] else -1) / (1 + edge_data['delay'])
+                            net_flow += flow_contrib
                 for step in range(steps + 1):
                     interp_x = int(start_x + step * dx)
                     interp_y = int(start_y + step * dy)
                     if 0 <= interp_x < grid_size and 0 <= interp_y < grid_size:
-                        flow_potential[interp_y, interp_x] += 1 if step < steps / 2 else -1
+                        flow_potential[interp_y, interp_x] += net_flow * (1 if step < steps / 2 else -1)
 
     print("Calculating Flow Field (F) = -Gradient(Potential)...")
     flow_potential_blurred = gaussian_filter(flow_potential, sigma=sigma_flow_potential)
@@ -274,7 +333,7 @@ def generate_multi_scale_fields(neurons_2d, connections, config):
         'community': community_field_blurred
     }
 
-    print("GVFT field generation complete (Multi-Scale method).")
+    print("GVFT field generation complete (Multi-Scale method with dynamics).")
     return gvft_fields
 
 def visualize_fields(gvft_fields, neurons_2d, connections, output_path, config):
@@ -337,11 +396,11 @@ def visualize_fields(gvft_fields, neurons_2d, connections, output_path, config):
 
     connection_count_vis = 0
     if connections and neurons_2d:
-        for pre_id, post_id, weight in connections:
+        for pre_id, post_id, weight, delay, excitatory in connections:
             if pre_id in neurons_2d and post_id in neurons_2d and 'position_2d' in neurons_2d[pre_id] and 'position_2d' in neurons_2d[post_id]:
                 pre_x, pre_y = neurons_2d[pre_id]['position_2d']
                 post_x, post_y = neurons_2d[post_id]['position_2d']
-                color = 'green'
+                color = 'green' if excitatory else 'red'
                 scaled_lw = max(0.5, weight * 0.8) if weight is not None else 0.5
                 axs[1, 1].plot([pre_x, post_x], [pre_y, post_y], color=color, linewidth=scaled_lw, alpha=0.4, zorder=2)
                 connection_count_vis += 1
@@ -362,7 +421,7 @@ def visualize_fields(gvft_fields, neurons_2d, connections, output_path, config):
 
 def main():
     """Main function to run the script."""
-    parser = argparse.ArgumentParser(description='Generate GVFT fields from NeuroML2 files (Multi-Scale Method)')
+    parser = argparse.ArgumentParser(description='Generate GVFT fields from NeuroML2 files (Multi-Scale Method with Dynamics)')
     parser.add_argument('input_dir', help='Directory containing NeuroML2 files')
     parser.add_argument('output_dir', help='Directory to save output fields')
     parser.add_argument('--grid-size', type=int, default=None, help=f'Size of the grid (default: {DEFAULT_GRID_SIZE})')
