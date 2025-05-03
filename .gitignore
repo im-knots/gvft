@@ -1,2 +1,4 @@
 gvft-env/
 notes/
+__pycache__/
+*.csv

@@ -3,10 +3,10 @@ import numpy as np
 
 # --- BASE PARAMETERS ---
 # Reference grid size for parameter scaling
-BASE_GRID_SIZE = 200
+BASE_GRID_SIZE = 500
 
 # Base time parameters
-BASE_TIMESTEPS_SWEEP = 100
+BASE_TIMESTEPS_SWEEP = 200
 BASE_TIMESTEPS_SIM = 500
 BASE_DT = 0.1
 
