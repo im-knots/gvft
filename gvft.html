@@ -189,9 +189,9 @@
     </header>
     
     <div class="abstract-container">
-        <div class="abstract-heading">Abstract</div>
+      <div class="abstract-heading">Abstract</div>
       <p>
-        Gestalt Vector Field Theory (GVFT) introduces a meta-architectural framework for specifying and evolving modular neural network topologies using continuous multi-field representations defined over a spatial domain. Instead of encoding fixed graphs, GVFT defines smooth, differentiable fields—such as connectivity flows, synaptic strengths, conduction delays, cell-type preferences, and neuromodulatory gradients—that serve as generative blueprints from which full architectures emerge. These fields, inspired by biological development and dynamical systems, encode both structural and functional priors in a compact and evolvable form. We describe practical techniques for deriving modular networks from these fields, introduce variational optimization and constraint-based regularization, and model time-evolving influences through reaction-diffusion equations. GVFT offers a principled bridge between continuous field dynamics and discrete architectural instantiation, enabling new pathways for interpretable and adaptive cognitive systems.
+        Gestalt Vector Field Theory (GVFT) introduces a meta-architectural framework for specifying and evolving modular neural network topologies using continuous multi-field representations defined over a spatial domain. Instead of encoding fixed graphs, GVFT defines smooth, differentiable fields—such as connectivity flows, synaptic strengths, conduction delays, and neuromodulatory gradients—that serve as generative blueprints for network formation. We explore this framework through two experimental regimes: (1) synthetic field simulations to map emergent dynamics across parameter space, and (2) a biologically grounded loop that converts real connectomes from NeuroML2 into GVFT fields, evolves them, and returns them back into NeuroML2 for behavioral testing using OpenWorm simulations. This paper introduces the mathematical formalism, simulation methodology, and experimental validation steps that position GVFT as a biologically plausible and computationally flexible foundation for modular neural architecture design.
       </p>
     </div>
     
@@ -422,7 +422,7 @@
             The resulting phase diagram reveals a clear gradient in pattern formation behavior across the parameter space. At low values of $D_F$, minimal hotspot activity is observed regardless of the $\lambda_W$ value, indicating either rapid decay or insufficient structure formation. As $D_F$ increases, we observe a monotonic increase in the fraction of grid points where $W$ exceeds the threshold value of 1.5 ("hotspot fraction"). This relationship holds across the entire range of $\lambda_W$ values tested, suggesting that flow field diffusion plays a dominant role in pattern formation under these conditions.
           </p>
           <p>
-            While these parameter sweeps revealed clear transitions in pattern density, the emergent structures with uniform priors exhibited limited complexity. The patterns showed regular hotspot formation but lacked the rich spatial organization and functional modularity we would expect in biologically relevant systems. This observation motivated our subsequent work toward incorporating non-uniform, biologically informed priors.
+            While these parameter sweeps revealed clear transitions in pattern density, a particularly intriguing result was the spontaneous emergence of Turing-pattern-like structures across several regions of the parameter space. As shown in Figure X (top two rows), initialized fields evolved into stripe- and blob-like formations with high spatial regularity—consistent with classical reaction-diffusion systems. These field patterns serve as structured substrates over which we then instantiate modular architectures. We conjecture that such self-organized field motifs provide a fertile ground for emergent computational primitives, akin to how natural morphogenesis underpins functionally distinct tissue regions. This observation motivates a new hypothesis: that GVFT's attractor landscape supports architectural motifs driven by symmetry-breaking instabilities, not just handcrafted priors.
           </p>
           
           <h3>4.3 Limitations of Uniform Prior Simulations</h3>
@@ -608,21 +608,23 @@
         This approach has been successfully applied to C. elegans pharyngeal nervous system data, generating field representations that capture both the structural and functional characteristics of the original biological network. The extracted fields show non-uniform, structured patterns that reflect the underlying organization of the biological circuit, including functional clustering, directed information flow, and heterogeneous connectivity densities.
       </p>
       
-      <h3>7.2 From Biological Priors to GVFT Simulations</h3>
+      <h3>7.2 Evolving GVFT Fields from Biological Priors</h3>
       <p>
-        The extracted biological field representations serve as informed priors for GVFT simulations, replacing the uniform initialization used in our preliminary work. These biologically grounded priors are expected to guide the field dynamics toward functionally relevant patterns and architectural motifs.
+          To test the functional validity of GVFT representations, we developed a closed-loop experimental pipeline that begins with real biological architectures and returns to them in evolved form. Starting from NeuroML2 connectomes (e.g., the C. elegans pharyngeal nervous system), we extract spatially embedded GVFT fields as detailed in Section 7.1. These extracted fields serve as structured priors that seed GVFT’s dynamical PDE simulations.
       </p>
       <p>
-        Our planned simulation studies will examine how these biologically informed priors influence:
+          Once seeded, the GVFT field ensemble evolves under reaction-diffusion dynamics and cross-field interactions (see Section 2.3), generating new modular connectivity patterns over time. From these final evolved fields, we instantiate a discrete neural architecture using the field-to-graph procedure (Section 3).
       </p>
-      <ul>
-        <li>The emergence and stability of functional architectural motifs</li>
-        <li>The parameter regions supporting biologically plausible dynamics</li>
-        <li>The transfer of structural and functional properties from source biological networks to synthetic architectures</li>
-      </ul>
       <p>
-        Preliminary analyses suggest that the biologically extracted priors contain rich structure at multiple spatial scales, potentially supporting the emergence of hierarchical processing architectures similar to those observed in biological neural systems.
+          Crucially, we then convert the GVFT-evolved architecture back into NeuroML2 format, ensuring compatibility with the OpenWorm simulation stack. This allows us to run full forward simulations of both the original and GVFT-evolved worm circuits in a controlled environment, testing for behavioral viability, robustness to sensory stimuli, and responsiveness to environmental perturbations.
       </p>
+      <p>
+          The resulting comparison enables a novel form of functional validation: does a GVFT-evolved architecture still “wiggle” like the worm it came from? If so, we can infer that our field-based representation retains essential dynamical properties while offering a more compact, evolvable encoding space.
+      </p>
+      <p>
+          This NeuroML2 &rarr; GVFT Fields &rarr; Evolved GVFT Fields &rarr; NeuroML2 loop closes the gap between field theory and embodied behavior, and opens up new experimental possibilities for evaluating architectures not just structurally, but behaviorally.
+      </p>
+      
       
       <h3>7.3 GVFT to Neural Architecture</h3>
       <p>
