@@ -287,3 +287,48 @@ def run_parameter_sweep(config, apply_laplacian, Fx_init, Fy_init, W_init, eta_i
         gc.collect()
     
     return metrics_tensors
+
+def select_simulation_parameters(pattern_intensity_summary_2d, config):
+    """Select interesting parameter regimes for detailed simulations."""
+    print("\nSelecting interesting parameter regimes for detailed simulations...")
+    
+    # Get CPU arrays
+    pattern_intensity_cpu = pattern_intensity_summary_2d.cpu().numpy()
+    lam_W_values_cpu = config.lam_W_values.cpu().numpy()
+    D_F_values_cpu = config.D_F_values.cpu().numpy()
+    
+    # Method 1: Find row with maximum variance (most interesting transitions)
+    row_std_dev = np.std(pattern_intensity_cpu, axis=1)
+    chosen_lam_W_index = np.argmax(row_std_dev)
+    chosen_lam_W = lam_W_values_cpu[chosen_lam_W_index]
+
+    selected_row_values = pattern_intensity_cpu[chosen_lam_W_index]
+    sorted_D_F_indices = np.argsort(selected_row_values)
+
+    # Take low, medium, and high values from the most varying row
+    low_idx = sorted_D_F_indices[0]
+    mid_idx = sorted_D_F_indices[len(sorted_D_F_indices) // 2]
+    high_idx = sorted_D_F_indices[-1]
+
+    selected_D_F_indices = sorted(set([low_idx, mid_idx, high_idx]))
+    selected_params = [(chosen_lam_W, D_F_values_cpu[idx]) for idx in selected_D_F_indices]
+    
+    # Method 2: Also find specific parameter pairs where value is around 0.5
+    # These are likely interesting transition regions
+    value_diff = np.abs(pattern_intensity_cpu - 0.5)
+    closest_pairs = np.unravel_index(np.argsort(value_diff.ravel())[:3], value_diff.shape)
+    
+    for lam_idx, d_idx in zip(closest_pairs[0], closest_pairs[1]):
+        pair = (lam_W_values_cpu[lam_idx], D_F_values_cpu[d_idx])
+        if pair not in selected_params:
+            selected_params.append(pair)
+    
+    # Limit to a reasonable number of simulations
+    max_full_sims = 6
+    if len(selected_params) > max_full_sims:
+        selected_params = selected_params[:max_full_sims]
+
+    print(f"Selected {len(selected_params)} parameter pairs for full simulation: {selected_params}")
+    
+    return selected_params
+

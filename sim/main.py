@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 # Import modules
 from config import GVFTConfig
 from field_utils import build_domain, build_laplacian_operator, initialize_fields, load_neuroml_fields
-from sweep import run_parameter_sweep
-from simulation import run_full_simulation, select_simulation_parameters
+from sweep import run_parameter_sweep, select_simulation_parameters  # Changed import to get this from sweep.py
+from simulation import run_full_simulation  # Only import run_full_simulation from simulation.py
 from visualization import visualize_phase_diagram, visualize_multi_metric_phase_diagrams
 
 def parse_arguments():
@@ -25,7 +25,7 @@ def parse_arguments():
     parser.add_argument('--neuroml-basename', type=str, default='PharyngealNetwork', help='Base name of the processed NeuroML files')
     parser.add_argument('--primary-metric', type=str, default='pattern_quality', 
                         choices=['hotspot_fraction', 'pattern_persistence', 'structural_complexity', 
-                                'flow_coherence', 'pattern_quality'],
+                                'flow_coherence', 'pattern_quality', 'combined_fidelity'],
                         help='Primary metric to use for parameter selection')
     # New arguments for controlling output
     parser.add_argument('--save-checkpoints', action='store_true', help='Save checkpoint files during parameter sweep')
@@ -52,6 +52,54 @@ def setup_environment(args):
     config.print_config()
     
     return config
+
+def load_biological_module_positions(neuroml_dir, basename):
+    """Load the module positions from the NeuroML-derived positions."""
+    try:
+        from neuroml_to_gvft import parse_neuroml2_file, assign_synthetic_positions
+        
+        # First, try to load precomputed positions if available
+        positions_file = os.path.join(neuroml_dir, f"{basename}_positions.npy")
+        if os.path.exists(positions_file):
+            print(f"Loading precomputed module positions from {positions_file}")
+            module_positions = np.load(positions_file)
+            return module_positions
+        
+        # If not available, parse the NeuroML file and compute positions
+        neuroml_file_path = os.path.join(neuroml_dir, f"{basename}.net.nml")
+        if os.path.exists(neuroml_file_path):
+            print(f"Parsing NeuroML file to extract module positions: {neuroml_file_path}")
+            data = parse_neuroml2_file(neuroml_file_path)
+            if not data['neurons']:
+                print("No neurons found in NeuroML file")
+                return None
+                
+            # Compute positions using force-directed layout
+            neurons_2d = assign_synthetic_positions(data['neurons'], data['connections'])
+            
+            # Extract positions as numpy array
+            positions = []
+            for neuron_id, neuron_data in neurons_2d.items():
+                if 'position_2d' in neuron_data:
+                    positions.append(neuron_data['position_2d'])
+            
+            if positions:
+                module_positions = np.array(positions)
+                
+                # Save for future use
+                np.save(positions_file, module_positions)
+                print(f"Saved {len(module_positions)} module positions to {positions_file}")
+                
+                return module_positions
+            else:
+                print("No positions found in NeuroML data")
+                return None
+        else:
+            print(f"NeuroML file not found: {neuroml_file_path}")
+            return None
+    except Exception as e:
+        print(f"Error loading biological module positions: {e}")
+        return None
 
 def main():
     """Main function to run GVFT simulation."""
@@ -85,11 +133,36 @@ def main():
         Fx_init, Fy_init, W_init, eta_init = load_neuroml_fields(
             args.neuroml_fields, args.neuroml_basename, config.grid_size, config.device)
         print("Successfully loaded biological GVFT fields as simulation priors")
+        
+        # Load the original connections to enable connectome fidelity metrics
+        try:
+            from neuroml_to_gvft import parse_neuroml2_file
+            neuroml_file_path = os.path.join(args.neuroml_fields, f"{args.neuroml_basename}.net.nml")
+            if os.path.exists(neuroml_file_path):
+                data = parse_neuroml2_file(neuroml_file_path)
+                if data and 'connections' in data:
+                    config.source_connections = data['connections']
+                    print(f"Loaded {len(data['connections'])} source connections for connectome fidelity metrics")
+                    
+                    # Load or compute module positions from NeuroML
+                    module_positions = load_biological_module_positions(args.neuroml_fields, args.neuroml_basename)
+                    if module_positions is not None:
+                        config.bio_module_positions = torch.tensor(
+                            module_positions, dtype=torch.float32, device=config.device)
+                        config.num_modules = len(module_positions)
+                        print(f"Will use {config.num_modules} biologically-positioned modules for simulation")
+            else:
+                print(f"NeuroML source file not found at {neuroml_file_path}")
+                config.source_connections = None
+        except Exception as e:
+            print(f"Could not load source connections: {e}")
+            config.source_connections = None
     else:
         print("\nUsing random field initialization")
         filter_scale = 200 / config.grid_size if config.use_parameter_scaling else 1.0
         Fx_init, Fy_init, W_init, eta_init = initialize_fields(
             config.grid_size, config.device, filter_scale)
+        config.source_connections = None
     
     # Run parameter sweep if not skipped
     if not args.full_sims_only:

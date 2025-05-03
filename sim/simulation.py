@@ -8,7 +8,31 @@ from solvers import create_crank_nicolson_operators, solve_diffusion_equation
 from field_utils import normalize_field, clip_field
 from module_sampling import sample_module_positions, build_connectivity_graph
 from visualization import visualize_simulation
-from metrics_utils import compute_field_metrics
+from metrics_utils import compute_field_metrics, compute_connectome_metrics
+
+def save_metrics_series(metrics_series, output_file, config):
+    """Save the metrics series to a CSV file for later analysis."""
+    import pandas as pd
+    import os
+    
+    # Create a DataFrame from the metrics series
+    metrics_df = pd.DataFrame(metrics_series)
+    
+    # Add a timestep column
+    timesteps = list(range(0, config.timesteps_sim + 1, config.view_step))
+    if config.timesteps_sim not in timesteps:
+        timesteps.append(config.timesteps_sim)
+    
+    # Handle case where metrics might have fewer entries than timesteps
+    timesteps = timesteps[:len(metrics_series)]
+    metrics_df.insert(0, 'timestep', timesteps)
+    
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    
+    # Save to CSV
+    metrics_df.to_csv(output_file, index=False)
+    print(f"Saved metrics to {output_file}")
 
 def run_full_simulation(params, config, apply_laplacian, domain, Fx_init, Fy_init, W_init, eta_init, output_dir):
     """Run a full simulation with selected parameters and create visualizations."""
@@ -55,8 +79,9 @@ def run_full_simulation(params, config, apply_laplacian, domain, Fx_init, Fy_ini
     metrics_series.append(initial_metrics)
     
     # Initial module positions at t=0
+    # Use biological positions if available, otherwise sample
     module_coords = sample_module_positions(
-        Fx, Fy, W, config.num_modules, config.beta, config.gamma, domain['X'], domain['Y'])
+        Fx, Fy, W, config.num_modules, config.beta, config.gamma, domain['X'], domain['Y'], config=config)
     Module_coords_series.append(module_coords.clone().cpu().numpy())
     
     # Store initial fields
@@ -64,6 +89,28 @@ def run_full_simulation(params, config, apply_laplacian, domain, Fx_init, Fy_ini
         Fx_series.append(Fx.clone().cpu().numpy())
         Fy_series.append(Fy.clone().cpu().numpy())
         W_series.append(W.clone().cpu().numpy())
+    
+    # Build initial connectivity graph for t=0
+    initial_weights = build_connectivity_graph(module_coords, Fx, Fy, W, domain, config)
+    Graphs.append(initial_weights.clone().cpu().numpy())
+    
+    # Add connectome fidelity metrics for initial state if source connections are available
+    if hasattr(config, 'source_connections') and config.source_connections:
+        connectome_metrics = compute_connectome_metrics(
+            config.source_connections,
+            module_coords.cpu().numpy(),
+            Fx.cpu().numpy(), Fy.cpu().numpy(), W.cpu().numpy(),
+            config
+        )
+        
+        # Add these metrics to the current metrics
+        initial_metrics.update(connectome_metrics)
+        
+        # Print initial connectome fidelity
+        print(f"  Initial Connectome Fidelity Metrics:")
+        for metric_name, value in connectome_metrics.items():
+            if isinstance(value, (int, float)):
+                print(f"    {metric_name}: {value:.3f}")
     
     for t in range(1, config.timesteps_sim + 1):
         if t % max(1, config.timesteps_sim // 10) == 0:
@@ -108,25 +155,55 @@ def run_full_simulation(params, config, apply_laplacian, domain, Fx_init, Fy_ini
         # Calculate metrics at regular intervals
         if t % (config.timesteps_sim // 10) == 0 or t in timesteps_to_store:
             current_metrics = compute_field_metrics(Fx, Fy, W, W_init)
+            
+            # At t=0, we already have biological positions
+            # For t>0, we use dynamic positioning if config.use_dynamic_positions is True
+            # Otherwise, keep the same positions as t=0 to maintain structural similarity
+            if t > 0 and hasattr(config, 'use_dynamic_positions') and config.use_dynamic_positions:
+                # Update module positions based on current fields
+                module_coords = sample_module_positions(
+                    Fx, Fy, W, config.num_modules, config.beta, config.gamma, domain['X'], domain['Y'], config=config)
+            
+            # Build connectivity graph
+            weights = build_connectivity_graph(module_coords, Fx, Fy, W, domain, config)
+            
+            # Add connectome fidelity metrics if source connections are available
+            if hasattr(config, 'source_connections') and config.source_connections:
+                connectome_metrics = compute_connectome_metrics(
+                    config.source_connections,
+                    module_coords.cpu().numpy(),
+                    Fx.cpu().numpy(), Fy.cpu().numpy(), W.cpu().numpy(),
+                    config
+                )
+                
+                # Add these metrics to the current metrics
+                current_metrics.update(connectome_metrics)
+                
+                # Print connectome fidelity metrics
+                if t % (config.timesteps_sim // 5) == 0:
+                    print(f"  Connectome Fidelity Metrics at t={t}:")
+                    for metric_name, value in connectome_metrics.items():
+                        if isinstance(value, (int, float)):
+                            print(f"    {metric_name}: {value:.3f}")
+            
             metrics_series.append(current_metrics)
             
             # Print metrics progress every 1/5 of the simulation
             if t % (config.timesteps_sim // 5) == 0:
                 print(f"  Metrics at t={t}:")
                 for metric_name, value in current_metrics.items():
-                    print(f"    {metric_name}: {value:.3f}")
+                    if isinstance(value, (int, float)) and metric_name not in ['source_edge_count', 'generated_edge_count']:
+                        print(f"    {metric_name}: {value:.3f}")
             
-        # Only compute module positions and store data at specified timesteps
+        # Only store data at specified timesteps
         if t in timesteps_to_store:
-            # Update module positions based on current fields
-            module_coords = sample_module_positions(
-                Fx, Fy, W, config.num_modules, config.beta, config.gamma, domain['X'], domain['Y'])
-            
-            # Build connectivity graph
-            weights = build_connectivity_graph(module_coords, Fx, Fy, W, domain, config)
-            
-            # Store data at specified timesteps
+            # Store module positions and connectivity graphs
             Module_coords_series.append(module_coords.clone().cpu().numpy())
+            
+            # Get weights if not already calculated
+            if 'weights' not in locals() or t not in timesteps_to_store:
+                weights = build_connectivity_graph(module_coords, Fx, Fy, W, domain, config)
+                
             Graphs.append(weights.clone().cpu().numpy())
             Fx_series.append(Fx.clone().cpu().numpy())
             Fy_series.append(Fy.clone().cpu().numpy())
@@ -160,72 +237,3 @@ def run_full_simulation(params, config, apply_laplacian, domain, Fx_init, Fy_ini
     
     return idx
 
-def save_metrics_series(metrics_series, filename, config):
-    """Save metrics evolution to a CSV file."""
-    import pandas as pd
-    import os
-    
-    # Create a list of timesteps
-    timesteps = [0]
-    step = config.timesteps_sim // (len(metrics_series) - 1) if len(metrics_series) > 1 else config.timesteps_sim
-    for i in range(1, len(metrics_series)):
-        timesteps.append(i * step)
-    
-    # Create DataFrame
-    df = pd.DataFrame(metrics_series)
-    
-    # Add timestep column
-    df['timestep'] = timesteps
-    
-    # Reorder columns to put timestep first
-    cols = df.columns.tolist()
-    cols = cols[-1:] + cols[:-1]
-    df = df[cols]
-    
-    # Save to CSV
-    df.to_csv(filename, index=False)
-    print(f"Metrics saved to {filename}")
-
-def select_simulation_parameters(pattern_intensity_summary_2d, config):
-    """Select interesting parameter regimes for detailed simulations."""
-    print("\nSelecting interesting parameter regimes for detailed simulations...")
-    
-    # Get CPU arrays
-    pattern_intensity_cpu = pattern_intensity_summary_2d.cpu().numpy()
-    lam_W_values_cpu = config.lam_W_values.cpu().numpy()
-    D_F_values_cpu = config.D_F_values.cpu().numpy()
-    
-    # Method 1: Find row with maximum variance (most interesting transitions)
-    row_std_dev = np.std(pattern_intensity_cpu, axis=1)
-    chosen_lam_W_index = np.argmax(row_std_dev)
-    chosen_lam_W = lam_W_values_cpu[chosen_lam_W_index]
-
-    selected_row_values = pattern_intensity_cpu[chosen_lam_W_index]
-    sorted_D_F_indices = np.argsort(selected_row_values)
-
-    # Take low, medium, and high values from the most varying row
-    low_idx = sorted_D_F_indices[0]
-    mid_idx = sorted_D_F_indices[len(sorted_D_F_indices) // 2]
-    high_idx = sorted_D_F_indices[-1]
-
-    selected_D_F_indices = sorted(set([low_idx, mid_idx, high_idx]))
-    selected_params = [(chosen_lam_W, D_F_values_cpu[idx]) for idx in selected_D_F_indices]
-    
-    # Method 2: Also find specific parameter pairs where value is around 0.5
-    # These are likely interesting transition regions
-    value_diff = np.abs(pattern_intensity_cpu - 0.5)
-    closest_pairs = np.unravel_index(np.argsort(value_diff.ravel())[:3], value_diff.shape)
-    
-    for lam_idx, d_idx in zip(closest_pairs[0], closest_pairs[1]):
-        pair = (lam_W_values_cpu[lam_idx], D_F_values_cpu[d_idx])
-        if pair not in selected_params:
-            selected_params.append(pair)
-    
-    # Limit to a reasonable number of simulations
-    max_full_sims = 6
-    if len(selected_params) > max_full_sims:
-        selected_params = selected_params[:max_full_sims]
-
-    print(f"Selected {len(selected_params)} parameter pairs for full simulation: {selected_params}")
-    
-    return selected_params

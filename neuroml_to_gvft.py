@@ -123,41 +123,191 @@ def parse_neuroml2_file(filename):
         print(f"An unexpected error occurred while parsing {filename}: {e}")
         return {'neurons': {}, 'connections': []}
 
-def assign_synthetic_positions(neurons):
-    """Assign synthetic 2D positions to neurons in a grid layout."""
-    if not neurons:
-        print("Warning: No neurons to assign positions to.")
+def assign_synthetic_positions(neurons, connections):
+    """Assign synthetic 2D positions based on connectivity using force-directed layout.
+    
+    Uses networkx's spring_layout to position neurons based on their connectivity,
+    producing a more biologically plausible spatial embedding than a uniform grid.
+    
+    Args:
+        neurons: Dictionary of neurons with their properties
+        connections: List of connection tuples (pre_id, post_id, weight, delay, excitatory)
+        
+    Returns:
+        Dictionary of neurons with 2D positions added
+    """
+    if not neurons or not connections:
+        print("Warning: No neurons or connections to assign positions to.")
         return {}
     
     neuron_ids = list(neurons.keys())
     num_neurons = len(neuron_ids)
     neurons_2d = {}
     
-    grid_dim = int(np.ceil(np.sqrt(num_neurons)))
-    xs = np.linspace(DEFAULT_DOMAIN_BOUNDS[0][0] * 0.8, DEFAULT_DOMAIN_BOUNDS[0][1] * 0.8, grid_dim)
-    ys = np.linspace(DEFAULT_DOMAIN_BOUNDS[1][0] * 0.8, DEFAULT_DOMAIN_BOUNDS[1][1] * 0.8, grid_dim)
-    coords = [(x, y) for x in xs for y in ys]
+    # Create a graph from the connections
+    G = nx.DiGraph()
     
-    for i, neuron_id in enumerate(neuron_ids):
-        neuron_data = neurons[neuron_id].copy()
-        neuron_data['position_2d'] = coords[i % len(coords)]
-        neurons_2d[neuron_id] = neuron_data
+    # Add all neurons as nodes
+    for neuron_id in neuron_ids:
+        G.add_node(neuron_id, **neurons[neuron_id])
+    
+    # Add connections as edges with weights
+    for pre_id, post_id, weight, delay, excitatory in connections:
+        if pre_id in neuron_ids and post_id in neuron_ids:
+            # Use inverse weight for spring layout (stronger connections = shorter distances)
+            # Add small value to avoid division by zero
+            inverse_weight = 1.0 / (weight + 0.1)
+            G.add_edge(pre_id, post_id, weight=weight, inv_weight=inverse_weight, 
+                      delay=delay, excitatory=excitatory)
+    
+    # Run community detection to identify clusters
+    try:
+        communities = list(nx.community.louvain_communities(G.to_undirected(), resolution=1.0))
+        print(f"Detected {len(communities)} communities in connectome")
+        
+        # Assign community label to each neuron
+        community_map = {}
+        for idx, comm in enumerate(communities):
+            for neuron_id in comm:
+                community_map[neuron_id] = idx
+                
+        for neuron_id in neuron_ids:
+            if neuron_id in G:
+                G.nodes[neuron_id]['community'] = community_map.get(neuron_id, 0)
+    except Exception as e:
+        print(f"Warning: Community detection failed: {e}. Proceeding without community information.")
+    
+    # Apply force-directed layout within domain bounds
+    domain_width = DEFAULT_DOMAIN_BOUNDS[0][1] - DEFAULT_DOMAIN_BOUNDS[0][0]
+    domain_height = DEFAULT_DOMAIN_BOUNDS[1][1] - DEFAULT_DOMAIN_BOUNDS[1][0]
+    domain_scale = min(domain_width, domain_height) * 0.95  # Scale to fit within domain
+    
+    try:
+        # Use spring_layout with inverse weights (stronger connections = shorter distances)
+        # k controls the optimal distance between nodes, smaller values = tighter layout
+        pos = nx.spring_layout(
+            G, 
+            k=0.3 / np.sqrt(num_neurons),  # Adjusts spacing based on number of neurons
+            weight='inv_weight',  # Use inverse weights for distance
+            scale=domain_scale,   # Scale to fit within domain
+            iterations=200        # More iterations for better layout
+        )
+        
+        # Rescale to domain bounds
+        for neuron_id, position in pos.items():
+            # Shift by domain center
+            x = position[0] + (DEFAULT_DOMAIN_BOUNDS[0][0] + DEFAULT_DOMAIN_BOUNDS[0][1]) / 2
+            y = position[1] + (DEFAULT_DOMAIN_BOUNDS[1][0] + DEFAULT_DOMAIN_BOUNDS[1][1]) / 2
+            
+            # Copy neuron data and add position
+            neuron_data = neurons[neuron_id].copy()
+            neuron_data['position_2d'] = (x, y)
+            
+            # Include community if available
+            if 'community' in G.nodes[neuron_id]:
+                neuron_data['community'] = G.nodes[neuron_id]['community']
+                
+            neurons_2d[neuron_id] = neuron_data
+            
+        print(f"Successfully assigned positions using force-directed layout for {len(neurons_2d)} neurons")
+        
+    except Exception as e:
+        print(f"Force-directed layout failed: {e}. Falling back to grid layout.")
+        
+        # Fallback to grid layout if force-directed layout fails
+        grid_dim = int(np.ceil(np.sqrt(num_neurons)))
+        xs = np.linspace(DEFAULT_DOMAIN_BOUNDS[0][0] * 0.8, DEFAULT_DOMAIN_BOUNDS[0][1] * 0.8, grid_dim)
+        ys = np.linspace(DEFAULT_DOMAIN_BOUNDS[1][0] * 0.8, DEFAULT_DOMAIN_BOUNDS[1][1] * 0.8, grid_dim)
+        coords = [(x, y) for x in xs for y in ys]
+        
+        for i, neuron_id in enumerate(neuron_ids):
+            neuron_data = neurons[neuron_id].copy()
+            neuron_data['position_2d'] = coords[i % len(coords)]
+            neurons_2d[neuron_id] = neuron_data
     
     return neurons_2d
 
 def simulate_activity(G, num_steps=100):
-    """Simulate simple firing rate activity to estimate correlations."""
-    firing_rates = {node: 0.1 for node in G.nodes()}
-    print("Nodes in graph:", list(G.nodes()))  # Debugging
-    for _ in range(num_steps):
+    """Simulate neural activity using a more sophisticated leaky integrator model.
+    
+    Implements a differential equation-based firing rate model with nonlinear activation
+    and state memory. This provides a more realistic basis for estimating functional
+    connectivity patterns.
+    
+    Args:
+        G: NetworkX DiGraph with neural connectivity
+        num_steps: Number of simulation steps
+        
+    Returns:
+        Dictionary mapping node IDs to final firing rates
+    """
+    print("Simulating activity using leaky integrator model...")
+    
+    # Initialize firing rates with small random values
+    firing_rates = {node: 0.1 + 0.05 * np.random.rand() for node in G.nodes()}
+    
+    # Parameters
+    tau = 10.0         # Time constant (ms)
+    dt = 1.0           # Simulation timestep (ms)
+    noise_sigma = 0.01  # Noise level
+    
+    # Helper function: sigmoid activation
+    def sigmoid(x):
+        return 1.0 / (1.0 + np.exp(-x))
+    
+    # Run simulation
+    for step in range(num_steps):
         new_rates = firing_rates.copy()
+        
+        # Update each neuron
         for node in G.nodes():
-            neighbors = list(G.predecessors(node))  # Use predecessors for DiGraph
-            if neighbors:
-                print(f"Neighbors of {node}: {neighbors}")  # Debugging
-                incoming = sum(firing_rates[n] * G[n][node]['weight'] for n in neighbors)
-                new_rates[node] = max(0, min(1, 0.1 * incoming + 0.9 * firing_rates[node]))
+            # Get incoming connections
+            predecessors = list(G.predecessors(node))
+            
+            if predecessors:
+                # Calculate total input
+                total_input = 0.0
+                for pre in predecessors:
+                    # Get edge properties
+                    weight = G[pre][node].get('weight', 1.0)
+                    excitatory = G[pre][node].get('excitatory', True)
+                    
+                    # Apply excitatory/inhibitory effect
+                    sign = 1.0 if excitatory else -1.0
+                    
+                    # Add weighted contribution
+                    total_input += sign * weight * firing_rates[pre]
+                
+                # Apply nonlinear activation
+                activation = sigmoid(total_input - 0.5)  # Threshold at 0.5
+                
+                # Add noise
+                noise = noise_sigma * np.random.randn()
+                
+                # Leaky integration with time constant
+                dr_dt = (-firing_rates[node] + activation) / tau + noise
+                new_rates[node] = firing_rates[node] + dt * dr_dt
+                
+                # Ensure rates stay within [0,1]
+                new_rates[node] = max(0.0, min(1.0, new_rates[node]))
+            else:
+                # Decay rate for isolated neurons
+                new_rates[node] = firing_rates[node] * 0.95
+        
+        # Update all rates
         firing_rates = new_rates
+        
+        # Status updates
+        if step % 20 == 0:
+            avg_rate = np.mean(list(firing_rates.values()))
+            print(f"  Step {step}: Average firing rate = {avg_rate:.4f}")
+    
+    # Calculate statistics
+    avg_rate = np.mean(list(firing_rates.values()))
+    max_rate = np.max(list(firing_rates.values()))
+    min_rate = np.min(list(firing_rates.values()))
+    print(f"Activity simulation complete. Rate statistics: min={min_rate:.4f}, avg={avg_rate:.4f}, max={max_rate:.4f}")
+    
     return firing_rates
 
 def place_gaussian(field, center_ix, center_iy, sigma, weight=1.0):
@@ -371,7 +521,7 @@ def visualize_fields(gvft_fields, neurons_2d, connections, output_path, config):
     axs[0, 2].set_title("Neuromodulatory Field (eta)")
     fig.colorbar(im2, ax=axs[0, 2], fraction=0.046, pad=0.04)
 
-    im3 = axs[1, 0].imshow(gvft_fields['community'], extent=[domain_bounds[0][0], domain_bounds[0][1], domain_bounds[1][0], domain_bounds[1][1]], origin='lower', cmap='tab20', vmin=0, vmax=len(set(community_map.values())) + 1 if 'community_map' in locals() else 1)
+    im3 = axs[1, 0].imshow(gvft_fields['community'], extent=[domain_bounds[0][0], domain_bounds[0][1], domain_bounds[1][0], domain_bounds[1][1]], origin='lower', cmap='tab20', vmin=0, vmax=1)
     axs[1, 0].set_title("Community Field")
     fig.colorbar(im3, ax=axs[1, 0], fraction=0.046, pad=0.04)
 
@@ -409,6 +559,118 @@ def visualize_fields(gvft_fields, neurons_2d, connections, output_path, config):
     axs[1, 1].set_xlim(domain_bounds[0])
     axs[1, 1].set_ylim(domain_bounds[1])
     axs[1, 1].set_aspect('equal', adjustable='box')
+
+    # Add community detection visualization in the last panel
+    # Color neurons by community if available
+    if valid_neuron_coords.size > 0:
+        # Set up a community scatter plot
+        communities_present = False
+        
+        # Check if community information is available
+        for neuron_id in neurons_2d:
+            if 'community' in neurons_2d[neuron_id]:
+                communities_present = True
+                break
+        
+        if communities_present:
+            # Get community assignments and colors
+            community_ids = []
+            community_colors = []
+            neuron_coords_by_community = []
+            
+            # Get unique communities
+            unique_communities = set()
+            for neuron_id, data in neurons_2d.items():
+                if 'community' in data:
+                    unique_communities.add(data['community'])
+            
+            # Map neurons to communities
+            for neuron_id, data in neurons_2d.items():
+                if 'position_2d' in data and 'community' in data:
+                    community_ids.append(data['community'])
+                    neuron_coords_by_community.append(data['position_2d'])
+            
+            # Convert to numpy array
+            neuron_coords_by_community = np.array(neuron_coords_by_community)
+            
+            # Scatter plot with communities
+            scatter = axs[1, 2].scatter(
+                neuron_coords_by_community[:, 0], 
+                neuron_coords_by_community[:, 1],
+                c=community_ids, 
+                cmap='tab20', 
+                s=60, 
+                alpha=0.8,
+                edgecolors='black',
+                linewidth=0.5
+            )
+            
+            # Add connections for context
+            for pre_id, post_id, weight, delay, excitatory in connections:
+                if pre_id in neurons_2d and post_id in neurons_2d and 'position_2d' in neurons_2d[pre_id] and 'position_2d' in neurons_2d[post_id]:
+                    pre_x, pre_y = neurons_2d[pre_id]['position_2d']
+                    post_x, post_y = neurons_2d[post_id]['position_2d']
+                    
+                    # Draw connections more transparently to highlight communities
+                    axs[1, 2].plot([pre_x, post_x], [pre_y, post_y], color='gray', 
+                                  linewidth=0.3, alpha=0.2, zorder=1)
+            
+            axs[1, 2].set_title(f"Community Structure ({len(unique_communities)} communities)")
+            
+            # Add legend for communities if not too many
+            if len(unique_communities) <= 10:
+                legend = axs[1, 2].legend(
+                    handles=scatter.legend_elements()[0],
+                    labels=[f"Community {i}" for i in range(len(unique_communities))],
+                    title="Communities",
+                    loc="upper right",
+                    fontsize=8
+                )
+        else:
+            # If no community information, show neuron types instead
+            neuron_types = []
+            neuron_coords_by_type = []
+            
+            for neuron_id, data in neurons_2d.items():
+                if 'position_2d' in data and 'type' in data:
+                    neuron_types.append(data['type'])
+                    neuron_coords_by_type.append(data['position_2d'])
+            
+            if neuron_coords_by_type:
+                neuron_coords_by_type = np.array(neuron_coords_by_type)
+                
+                # Map neuron types to numeric values for coloring
+                type_map = {t: i for i, t in enumerate(set(neuron_types))}
+                type_indices = [type_map[t] for t in neuron_types]
+                
+                scatter = axs[1, 2].scatter(
+                    neuron_coords_by_type[:, 0], 
+                    neuron_coords_by_type[:, 1],
+                    c=type_indices, 
+                    cmap='Set1', 
+                    s=60, 
+                    alpha=0.8,
+                    edgecolors='black',
+                    linewidth=0.5
+                )
+                
+                axs[1, 2].set_title("Neuron Types")
+                
+                # Add legend for neuron types
+                legend = axs[1, 2].legend(
+                    handles=scatter.legend_elements()[0],
+                    labels=list(type_map.keys()),
+                    title="Neuron Types",
+                    loc="upper right",
+                    fontsize=8
+                )
+            else:
+                axs[1, 2].text(0, 0, "No neurons with type information", 
+                             ha='center', va='center', fontsize=12)
+        
+        axs[1, 2].set_xlim(domain_bounds[0])
+        axs[1, 2].set_ylim(domain_bounds[1])
+        axs[1, 2].set_aspect('equal', adjustable='box')
 
     plt.tight_layout(rect=[0, 0.03, 1, 0.97])
     plt.suptitle(f"{os.path.basename(output_path).replace('_fields.png','')}\nGrid: {grid_size}x{grid_size}", fontsize=14)
@@ -477,7 +739,8 @@ def main():
         print(f"No neurons found or error parsing {filename}, skipping...")
         return
 
-    neurons_2d = assign_synthetic_positions(data['neurons'])
+    # Use improved function that now incorporates connectivity
+    neurons_2d = assign_synthetic_positions(data['neurons'], data['connections'])
     if not neurons_2d:
         print(f"Position assignment failed for {filename}, skipping...")
         return
