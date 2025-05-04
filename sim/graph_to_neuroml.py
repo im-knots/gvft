@@ -497,7 +497,12 @@ class GraphToNeuroML:
             
             # Include synapse references
             for synapse_type in set(self.synapse_types.values()):
-                etree.SubElement(neuroml_doc, "include", href=f"{synapse_type}.synapse.nml")
+                if synapse_type == "Generic_GJ":
+                    # Use correct extension for gap junctions
+                    etree.SubElement(neuroml_doc, "include", href=f"{synapse_type}.nml")
+                else:
+                    # Keep normal extension for chemical synapses
+                    etree.SubElement(neuroml_doc, "include", href=f"{synapse_type}.synapse.nml")
             
             # Create network container
             # Sanitize the ID first

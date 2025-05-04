@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.githubusercontent.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="gvft_network_bio_prior_lamW_0_144_DF_0_013_t20_net">
-  <notes>NeuroML2 network generated from GVFT simulation on 2025-05-04 15:07:41
+  <notes>NeuroML2 network generated from GVFT simulation on 2025-05-04 15:36:38
 </notes>
   <include href="AVAL.cell.nml"/>
   <include href="AVAR.cell.nml"/>
@@ -15,30 +15,30 @@
   <include href="SMBVR.cell.nml"/>
   <include href="URXL.cell.nml"/>
   <include href="URXR.cell.nml"/>
-  <include href="I5.cell.nml"/>
-  <include href="NSMR.cell.nml"/>
-  <include href="M2L.cell.nml"/>
-  <include href="M1.cell.nml"/>
-  <include href="MCL.cell.nml"/>
   <include href="M5.cell.nml"/>
-  <include href="I1R.cell.nml"/>
-  <include href="I2L.cell.nml"/>
-  <include href="I2R.cell.nml"/>
-  <include href="I4.cell.nml"/>
   <include href="I6.cell.nml"/>
+  <include href="I3.cell.nml"/>
+  <include href="I5.cell.nml"/>
+  <include href="M4.cell.nml"/>
+  <include href="NSML.cell.nml"/>
+  <include href="M3L.cell.nml"/>
+  <include href="MCL.cell.nml"/>
+  <include href="I4.cell.nml"/>
+  <include href="M1.cell.nml"/>
+  <include href="M2R.cell.nml"/>
+  <include href="I2R.cell.nml"/>
+  <include href="M2L.cell.nml"/>
+  <include href="NSMR.cell.nml"/>
   <include href="MCR.cell.nml"/>
   <include href="M3R.cell.nml"/>
+  <include href="I1R.cell.nml"/>
   <include href="MI.cell.nml"/>
-  <include href="M3L.cell.nml"/>
-  <include href="M2R.cell.nml"/>
-  <include href="I3.cell.nml"/>
-  <include href="NSML.cell.nml"/>
-  <include href="M4.cell.nml"/>
   <include href="I1L.cell.nml"/>
-  <include href="Glutamate.synapse.nml"/>
-  <include href="Acetylcholine.synapse.nml"/>
+  <include href="I2L.cell.nml"/>
   <include href="Serotonin_Glutamate.synapse.nml"/>
-  <include href="Generic_GJ.synapse.nml"/>
+  <include href="Acetylcholine.synapse.nml"/>
+  <include href="Glutamate.synapse.nml"/>
+  <include href="Generic_GJ.nml"/>
   <network id="gvft_network_bio_prior_lamW_0_144_DF_0_013_t20_net" type="networkWithTemperature" temperature="20.0 degC">
     <population id="M1" component="M1" type="populationList" size="1">
       <annotation>
