@@ -3,9 +3,13 @@ import matplotlib.pyplot as plt
 import os
 import seaborn as sns
 import pandas as pd
+import networkx as nx
+from matplotlib.colors import ListedColormap
+import matplotlib.patches as mpatches
 
 def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, Graphs, 
-                         X_np, Y_np, x_np, y_np, config, output_dir, params, bio_prior=False):
+                         X_np, Y_np, x_np, y_np, config, output_dir, params, 
+                         NetworkX_graphs=None, Communities=None, bio_prior=False):
     """Visualize simulation results with multi-panel figures."""
     idx, current_lam_W, D_F = params
     timesteps_to_store = list(range(0, config.timesteps_sim + 1, config.view_step))
@@ -14,7 +18,12 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
     
     n_show = len(timesteps_to_store)
     row_labels = ["Flow Mag $|F|$", "Strength $W(x)$", "Flow Field $F(x)$", "Graph & Fields"]
-    fig, axs = plt.subplots(len(row_labels), n_show, figsize=(4 * n_show, 13), constrained_layout=True)
+    
+    # Add community detection row if available
+    if NetworkX_graphs is not None and Communities is not None:
+        row_labels.append("Community Structure")
+    
+    fig, axs = plt.subplots(len(row_labels), n_show, figsize=(4 * n_show, 3 * len(row_labels)), constrained_layout=True)
     
     # Handle case where only one timestep is stored (reshape axes)
     if n_show == 1:
@@ -78,7 +87,6 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
                               density=streamplot_density, linewidth=0.5)
         axs[3, i].scatter(module_coords_t[:, 0], module_coords_t[:, 1], c='blue', s=50, edgecolors='black', zorder=3, label='Modules')
         
-        connection_count_vis = 0
         for m in range(config.num_modules):
             for n in range(config.num_modules):
                 if weights[m, n] > 0.01:
@@ -92,11 +100,65 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
                         axs[3, i].arrow(x0, y0, dx_arrow, dy_arrow, head_width=0.06, head_length=0.08, 
                                        length_includes_head=True, alpha=arrow_alpha, color='green', 
                                        linewidth=arrow_width, zorder=2)
-                        connection_count_vis += 1
         
-        axs[3, i].set_title(f"Connectivity ({connection_count_vis}) & Fields")
         axs[3, i].set_xlim(-1, 1); axs[3, i].set_ylim(-1, 1)
         axs[3, i].set_aspect('equal', adjustable='box')
+        axs[3, i].set_xticks([]); axs[3, i].set_yticks([])
+        
+        # Row 4 (if available): Community Structure
+        if len(row_labels) > 4 and NetworkX_graphs is not None and Communities is not None:
+            if i > 0 and t_idx <= len(NetworkX_graphs):  # Skip t=0 for communities
+                G = NetworkX_graphs[t_idx-1]
+                communities = Communities[t_idx-1]
+                
+                # Create a colormap for communities
+                num_communities = len(communities)
+                colors = plt.cm.tab10(np.linspace(0, 1, max(num_communities, 10)))
+                
+                # Create position dictionary for nx.draw
+                pos = {}
+                color_map = []
+                
+                # Assign colors based on community membership
+                for node in G.nodes():
+                    pos[node] = G.nodes[node]['pos']
+                    
+                    # Find which community this node belongs to
+                    node_community = -1
+                    for comm_idx, comm in enumerate(communities):
+                        if node in comm:
+                            node_community = comm_idx
+                            break
+                            
+                    if node_community >= 0:
+                        color_idx = node_community % len(colors)
+                        color_map.append(colors[color_idx])
+                    else:
+                        color_map.append('gray')
+                
+                # Draw the network with communities
+                nx.draw_networkx_nodes(G, pos, ax=axs[4, i], node_color=color_map, 
+                                       node_size=100, edgecolors='black')
+                nx.draw_networkx_edges(G, pos, ax=axs[4, i], alpha=0.5, arrows=True,
+                                      width=[G[u][v]['weight']*2 for u, v in G.edges()],
+                                      edge_color='gray')
+                
+                # Add legend for communities
+                if num_communities > 0:
+                    handles = []
+                    for c_idx in range(min(num_communities, 5)):  # Limit legend to 5 entries
+                        patch = mpatches.Patch(color=colors[c_idx], label=f'Community {c_idx}')
+                        handles.append(patch)
+                    
+                    if num_communities > 5:
+                        patch = mpatches.Patch(color='lightgray', label=f'+ {num_communities-5} more')
+                        handles.append(patch)
+                        
+                    axs[4, i].legend(handles=handles, loc='upper right', fontsize='xx-small')
+                
+                axs[4, i].set_xlim(-1, 1); axs[4, i].set_ylim(-1, 1)
+                axs[4, i].set_aspect('equal', adjustable='box')
+                axs[4, i].set_title(f"{len(communities)} communities")
     
     # Add row labels
     for row_idx, label in enumerate(row_labels):
@@ -132,131 +194,36 @@ def visualize_metrics_over_time(metrics_series, timesteps, output_dir,
     # Extract metric names and values
     metric_names = list(metrics_series[0].keys())
     
-    # Filter metrics to include only numeric values and exclude redundant stats
-    filtered_metrics = []
-    for metric_name in metric_names:
-        # Check if metric is numeric in the first item
-        if isinstance(metrics_series[0].get(metric_name), (int, float)) and not metric_name.endswith('_count'):
-            filtered_metrics.append(metric_name)
+    # Create figure with subplots
+    fig, axs = plt.subplots(1, len(metric_names), figsize=(4 * len(metric_names), 5))
     
-    # Separate field metrics from connectome metrics
-    field_metrics = [m for m in filtered_metrics if m not in 
-                    ['edge_overlap', 'modularity_similarity', 'weight_correlation', 
-                     'combined_fidelity', 'source_clustering', 'generated_clustering']]
+    # Handle case of single metric
+    if len(metric_names) == 1:
+        axs = [axs]
     
-    connectome_metrics = [m for m in filtered_metrics if m in 
-                         ['edge_overlap', 'modularity_similarity', 'weight_correlation', 
-                          'combined_fidelity']]
+    # Plot each metric's evolution
+    for i, metric_name in enumerate(metric_names):
+        values = [m[metric_name] for m in metrics_series]
+        axs[i].plot(timesteps, values, 'o-', linewidth=2)
+        axs[i].set_title(metric_name.replace('_', ' ').title())
+        axs[i].set_xlabel('Timestep')
+        axs[i].set_ylabel('Value')
+        axs[i].grid(True, linestyle='--', alpha=0.7)
     
-    # Create two separate figures if we have both types of metrics
-    if field_metrics:
-        # Create figure for field metrics
-        fig1, axs1 = plt.subplots(1, len(field_metrics), figsize=(4 * len(field_metrics), 5))
-        
-        # Handle case of single metric
-        if len(field_metrics) == 1:
-            axs1 = [axs1]
-        
-        # Plot each field metric's evolution
-        for i, metric_name in enumerate(field_metrics):
-            values = [m.get(metric_name, 0) for m in metrics_series]
-            axs1[i].plot(timesteps, values, 'o-', linewidth=2)
-            axs1[i].set_title(metric_name.replace('_', ' ').title())
-            axs1[i].set_xlabel('Timestep')
-            axs1[i].set_ylabel('Value')
-            axs1[i].grid(True, linestyle='--', alpha=0.7)
-        
-        plt.tight_layout()
-        
-        # Add overall title
-        prior_text = "Bio Prior + " if bio_prior else ""
-        plt.suptitle(f'{prior_text}Field Metrics Evolution: lam_W={current_lam_W:.3f}, D_F={D_F:.3f}', 
-                     fontsize=14, y=1.05)
-        
-        # Save figure
-        bio_tag = "bio_prior_" if bio_prior else ""
-        filename = f"field_metrics_evolution_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_grid{config.grid_size}.png"
-        filepath = os.path.join(output_dir, filename)
-        plt.savefig(filepath, dpi=150, bbox_inches='tight')
-        plt.close()
-        print(f"Saved field metrics evolution chart to {filepath}")
+    plt.tight_layout()
     
-    # Create figure for connectome metrics if available
-    if connectome_metrics:
-        fig2, axs2 = plt.subplots(1, len(connectome_metrics), figsize=(4 * len(connectome_metrics), 5))
-        
-        # Handle case of single metric
-        if len(connectome_metrics) == 1:
-            axs2 = [axs2]
-        
-        # Plot each connectome metric's evolution
-        for i, metric_name in enumerate(connectome_metrics):
-            values = [m.get(metric_name, 0) for m in metrics_series]
-            axs2[i].plot(timesteps, values, 'o-', linewidth=2, color='green')
-            axs2[i].set_title(metric_name.replace('_', ' ').title())
-            axs2[i].set_xlabel('Timestep')
-            axs2[i].set_ylabel('Fidelity [0-1]')
-            axs2[i].set_ylim(0, 1)
-            axs2[i].grid(True, linestyle='--', alpha=0.7)
-        
-        plt.tight_layout()
-        
-        # Add overall title
-        prior_text = "Bio Prior + " if bio_prior else ""
-        plt.suptitle(f'{prior_text}Connectome Fidelity Evolution: lam_W={current_lam_W:.3f}, D_F={D_F:.3f}', 
-                     fontsize=14, y=1.05)
-        
-        # Save figure
-        bio_tag = "bio_prior_" if bio_prior else ""
-        filename = f"connectome_fidelity_evolution_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_grid{config.grid_size}.png"
-        filepath = os.path.join(output_dir, filename)
-        plt.savefig(filepath, dpi=150, bbox_inches='tight')
-        plt.close()
-        print(f"Saved connectome fidelity evolution chart to {filepath}")
-        
-        # Also create a combined panel showing both metrics
-        if field_metrics and len(field_metrics + connectome_metrics) <= 6:
-            # Create a single figure with all metrics
-            all_metrics = field_metrics + connectome_metrics
-            fig3, axs3 = plt.subplots(2, 3, figsize=(12, 8))
-            axs3 = axs3.flatten()
-            
-            # Plot each metric
-            for i, metric_name in enumerate(all_metrics):
-                if i < len(axs3):
-                    is_connectome = metric_name in connectome_metrics
-                    values = [m.get(metric_name, 0) for m in metrics_series]
-                    color = 'green' if is_connectome else 'blue'
-                    axs3[i].plot(timesteps, values, 'o-', linewidth=2, color=color)
-                    axs3[i].set_title(metric_name.replace('_', ' ').title())
-                    axs3[i].set_xlabel('Timestep')
-                    
-                    if is_connectome:
-                        axs3[i].set_ylabel('Fidelity [0-1]')
-                        axs3[i].set_ylim(0, 1)
-                    else:
-                        axs3[i].set_ylabel('Value')
-                        
-                    axs3[i].grid(True, linestyle='--', alpha=0.7)
-            
-            # Hide unused subplots
-            for i in range(len(all_metrics), len(axs3)):
-                axs3[i].set_visible(False)
-            
-            plt.tight_layout()
-            
-            # Add overall title
-            prior_text = "Bio Prior + " if bio_prior else ""
-            plt.suptitle(f'{prior_text}Combined Metrics Evolution: lam_W={current_lam_W:.3f}, D_F={D_F:.3f}', 
-                         fontsize=14, y=0.98)
-            
-            # Save figure
-            bio_tag = "bio_prior_" if bio_prior else ""
-            filename = f"combined_metrics_evolution_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_grid{config.grid_size}.png"
-            filepath = os.path.join(output_dir, filename)
-            plt.savefig(filepath, dpi=150, bbox_inches='tight')
-            plt.close()
-            print(f"Saved combined metrics evolution chart to {filepath}")
+    # Add overall title
+    prior_text = "Bio Prior + " if bio_prior else ""
+    plt.suptitle(f'{prior_text}Metrics Evolution: lam_W={current_lam_W:.3f}, D_F={D_F:.3f}', 
+                 fontsize=14, y=1.05)
+    
+    # Save figure
+    bio_tag = "bio_prior_" if bio_prior else ""
+    filename = f"metrics_evolution_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_grid{config.grid_size}.png"
+    filepath = os.path.join(output_dir, filename)
+    plt.savefig(filepath, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"Saved metrics evolution chart to {filepath}")
 
 def visualize_phase_diagram(pattern_intensity_summary_2d, lam_W_values, D_F_values, config, output_dir, 
                            is_final=True, bio_prior=False, metric_name="hotspot_fraction"):
@@ -285,16 +252,9 @@ def visualize_phase_diagram(pattern_intensity_summary_2d, lam_W_values, D_F_valu
         cmap = "magma"
     elif metric_name == "pattern_quality":
         cmap = "inferno"
-    elif metric_name in ["combined_fidelity", "edge_overlap", "modularity_similarity", "weight_correlation"]:
-        cmap = "RdYlGn"  # Red-Yellow-Green colormap is good for fidelity metrics (red=bad, green=good)
-    
-    # Set vmax/vmin based on metric
-    vmin, vmax = None, None
-    if metric_name in ["combined_fidelity", "edge_overlap", "modularity_similarity", "weight_correlation"]:
-        vmin, vmax = 0, 1  # Fidelity measures are in [0,1]
     
     # Create heatmap
-    sns.heatmap(df_2d, cmap=cmap, linewidths=0.5, vmin=vmin, vmax=vmax,
+    sns.heatmap(df_2d, cmap=cmap, linewidths=0.5,
                 cbar_kws={"label": f"{metric_name.replace('_', ' ').title()}"})
     
     # Format title with metric information
@@ -370,16 +330,9 @@ def visualize_multi_metric_phase_diagrams(metrics_tensors, lam_W_values, D_F_val
             cmap = "magma"
         elif metric_name == "pattern_quality":
             cmap = "inferno"
-        elif metric_name in ["combined_fidelity", "edge_overlap", "modularity_similarity", "weight_correlation"]:
-            cmap = "RdYlGn"  # Red-Yellow-Green for fidelity metrics
-        
-        # Set vmax/vmin based on metric
-        vmin, vmax = None, None
-        if metric_name in ["combined_fidelity", "edge_overlap", "modularity_similarity", "weight_correlation"]:
-            vmin, vmax = 0, 1  # Fidelity measures are in [0,1]
         
         # Create heatmap
-        sns.heatmap(df, cmap=cmap, linewidths=0.5, ax=axs[row, col], vmin=vmin, vmax=vmax,
+        sns.heatmap(df, cmap=cmap, linewidths=0.5, ax=axs[row, col],
                     cbar_kws={"label": f"{metric_name.replace('_', ' ').title()}"})
         
         # Set titles and labels

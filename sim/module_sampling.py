@@ -17,51 +17,8 @@ def compute_module_probability(Fx, Fy, W, beta, gamma):
         
     return prob
 
-def sample_module_positions(Fx, Fy, W, num_modules, beta, gamma, X, Y, config=None):
-    """Sample module positions based on field-guided probability using GPU-native operations
-    
-    If config contains bio_module_positions, those will be used instead of sampling.
-    """
-    # Check if we have biological positions available
-    if config is not None and hasattr(config, 'bio_module_positions') and config.bio_module_positions is not None:
-        bio_positions = config.bio_module_positions
-        
-        # If the number of modules doesn't match, we sample a subset or pad
-        if len(bio_positions) != num_modules:
-            if len(bio_positions) > num_modules:
-                # Sample a subset of positions
-                indices = torch.randperm(len(bio_positions), device=bio_positions.device)[:num_modules]
-                return bio_positions[indices]
-            else:
-                # We need to add more positions
-                # Use the provided positions and sample the rest
-                prob = compute_module_probability(Fx, Fy, W, beta, gamma)
-                flat_prob = prob.flatten()
-                flat_prob = flat_prob / (flat_prob.sum() + 1e-10)
-                
-                device = Fx.device
-                grid_size = Fx.shape[0]
-                
-                # Sample additional positions
-                additional_count = num_modules - len(bio_positions)
-                try:
-                    indices = torch.multinomial(flat_prob, additional_count, replacement=False)
-                except ValueError as e:
-                    print(f"Error sampling module positions: {e}, Sum(p)={flat_prob.sum()}. Using uniform sampling.")
-                    indices = torch.randperm(grid_size * grid_size, device=device)[:additional_count]
-                
-                yi, xi = torch.div(indices, grid_size, rounding_mode='floor'), indices % grid_size
-                
-                # Extract coordinates
-                additional_coords = torch.stack([X[yi, xi], Y[yi, xi]], dim=1)
-                
-                # Combine with biological positions
-                return torch.cat([bio_positions, additional_coords], dim=0)
-        else:
-            # Perfect match - use all biological positions
-            return bio_positions
-    
-    # No biological positions available, use standard sampling
+def sample_module_positions(Fx, Fy, W, num_modules, beta, gamma, X, Y):
+    """Sample module positions based on field-guided probability using GPU-native operations"""
     prob = compute_module_probability(Fx, Fy, W, beta, gamma)
     flat_prob = prob.flatten()
     flat_prob = flat_prob / (flat_prob.sum() + 1e-10)
@@ -70,107 +27,20 @@ def sample_module_positions(Fx, Fy, W, num_modules, beta, gamma, X, Y, config=No
     grid_size = Fx.shape[0]
     
     try:
+        # Ensure we don't try to sample more positions than grid points
+        actual_num_modules = min(num_modules, grid_size * grid_size)
+        
         # Use torch.multinomial instead of numpy for GPU efficiency
-        indices = torch.multinomial(flat_prob, num_modules, replacement=False)
+        indices = torch.multinomial(flat_prob, actual_num_modules, replacement=False)
     except ValueError as e:
         print(f"Error sampling module positions: {e}, Sum(p)={flat_prob.sum()}. Using uniform sampling.")
-        indices = torch.randperm(grid_size * grid_size, device=device)[:num_modules]
+        indices = torch.randperm(grid_size * grid_size, device=device)[:min(num_modules, grid_size * grid_size)]
     
     yi, xi = torch.div(indices, grid_size, rounding_mode='floor'), indices % grid_size
     
     # Extract coordinates
     module_coords = torch.stack([X[yi, xi], Y[yi, xi]], dim=1)
-    
-    # Apply force-directed refinement if we have more than 2 modules
-    if num_modules > 2:
-        module_coords = refine_module_positions_with_force_directed(
-            module_coords, Fx, Fy, W, beta, gamma, device)
-    
     return module_coords
-
-def refine_module_positions_with_force_directed(initial_positions, Fx, Fy, W, beta, gamma, device):
-    """Refine module positions using force-directed layout based on field values.
-    
-    This implements a light version of the force-directed layout algorithm to adjust
-    module positions while preserving their general distribution according to field values.
-    """
-    # Convert tensors to CPU for NetworkX operations
-    module_coords_np = initial_positions.cpu().numpy()
-    Fx_np = Fx.cpu().numpy()
-    Fy_np = Fy.cpu().numpy()
-    W_np = W.cpu().numpy()
-    
-    num_modules = module_coords_np.shape[0]
-    grid_size = Fx_np.shape[0]
-    
-    # Create a fully connected graph for modules
-    G = nx.Graph()
-    
-    # Add nodes with positions
-    for i in range(num_modules):
-        G.add_node(i, pos=tuple(module_coords_np[i]))
-    
-    # Compute field-based weights between nodes
-    for i in range(num_modules):
-        # Get approximate field values at module position
-        x, y = module_coords_np[i]
-        # Convert [-1,1] coordinates to [0,grid_size-1] indices
-        ix = int((x + 1) / 2 * (grid_size - 1))
-        iy = int((y + 1) / 2 * (grid_size - 1))
-        # Clamp to valid range
-        ix = max(0, min(grid_size - 1, ix))
-        iy = max(0, min(grid_size - 1, iy))
-        
-        # Get field values
-        fx_i = Fx_np[iy, ix]
-        fy_i = Fy_np[iy, ix]
-        w_i = W_np[iy, ix]
-        
-        for j in range(i+1, num_modules):
-            # Calculate a weight based on field coherence
-            x2, y2 = module_coords_np[j]
-            ix2 = int((x2 + 1) / 2 * (grid_size - 1))
-            iy2 = int((y2 + 1) / 2 * (grid_size - 1))
-            # Clamp to valid range
-            ix2 = max(0, min(grid_size - 1, ix2))
-            iy2 = max(0, min(grid_size - 1, iy2))
-            
-            # Get field values at second point
-            fx_j = Fx_np[iy2, ix2]
-            fy_j = Fy_np[iy2, ix2]
-            w_j = W_np[iy2, ix2]
-            
-            # Calculate coherence as dot product of flow vectors
-            f_dot = fx_i * fx_j + fy_i * fy_j
-            
-            # Calculate weight based on field coherence and strength
-            weight = (1.0 + f_dot) * (abs(w_i) + abs(w_j)) / 4.0
-            
-            # Distance between points
-            dist = np.sqrt((x - x2)**2 + (y - y2)**2)
-            
-            # Add edge with weight
-            G.add_edge(i, j, weight=weight, distance=dist)
-    
-    # Apply force-directed layout with position constraints
-    # k parameter controls the optimal distance between nodes
-    pos = nx.spring_layout(
-        G, 
-        pos={i: tuple(pos) for i, pos in enumerate(module_coords_np)},
-        k=0.15,  # Smaller k keeps nodes closer
-        iterations=50,  # Fewer iterations to maintain field-based distribution
-        weight='weight',
-        fixed=None  # No fixed positions
-    )
-    
-    # Convert back to tensor
-    refined_positions = np.array([pos[i] for i in range(num_modules)])
-    
-    # Ensure positions stay within [-1, 1] bounds
-    refined_positions = np.clip(refined_positions, -1, 1)
-    
-    # Convert back to torch tensor on the original device
-    return torch.tensor(refined_positions, device=device, dtype=torch.float32)
 
 def build_connectivity_graph(module_coords, Fx, Fy, W, domain, config):
     """Build connectivity graph between modules based on flow field alignment."""
@@ -181,7 +51,7 @@ def build_connectivity_graph(module_coords, Fx, Fy, W, domain, config):
     x, y = domain['x'], domain['y']
     cos_threshold = config.cos_threshold
     lambda_val = config.lambda_val
-    top_k = config.top_k
+    top_k = min(config.top_k, num_modules - 1)  # Ensure top_k doesn't exceed available modules
     
     for i in range(num_modules):
         # Find closest grid points to module positions
@@ -217,9 +87,48 @@ def build_connectivity_graph(module_coords, Fx, Fy, W, domain, config):
             w_ij = torch.clamp(rho / lambda_val, 0, 1.0)
             candidate_edges.append((j, w_ij.item()))
         
-        # Sort and keep top-k edges
-        candidate_edges = sorted(candidate_edges, key=lambda item: item[1], reverse=True)[:top_k]
-        for j, w_ij in candidate_edges:
-            weights[i, j] = w_ij
+        # Sort and keep top-k edges, if available
+        if candidate_edges:
+            candidate_edges = sorted(candidate_edges, key=lambda item: item[1], reverse=True)
+            for j, w_ij in candidate_edges[:min(top_k, len(candidate_edges))]:
+                weights[i, j] = w_ij
     
     return weights
+
+def build_networkx_graph(module_coords, weights):
+    """Convert module positions and weights to a NetworkX graph for visualization."""
+    G = nx.DiGraph()
+    
+    # Add nodes with positions
+    for i, pos in enumerate(module_coords.cpu().numpy()):
+        G.add_node(i, pos=tuple(pos))
+    
+    # Add weighted edges
+    weight_matrix = weights.cpu().numpy()
+    for i in range(len(module_coords)):
+        for j in range(len(module_coords)):
+            w = weight_matrix[i, j]
+            if w > 0:
+                G.add_edge(i, j, weight=w)
+    
+    return G
+
+def detect_communities(G):
+    """Detect communities in the graph using Louvain algorithm."""
+    try:
+        # Convert to undirected for community detection
+        G_undirected = G.to_undirected()
+        communities = nx.community.louvain_communities(G_undirected)
+        
+        # Create community mapping
+        community_map = {}
+        for idx, comm in enumerate(communities):
+            for node in comm:
+                community_map[node] = idx
+                
+        return communities, community_map
+        
+    except Exception as e:
+        print(f"Error detecting communities: {e}")
+        # Return empty result if failed
+        return [], {}
