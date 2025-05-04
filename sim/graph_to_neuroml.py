@@ -674,59 +674,8 @@ class GraphToNeuroML:
                         'synapse_type': synapse_type,
                         'is_interface': True
                     })
-            
-            # Now add electrical projections FIRST, followed by chemical projections
-            # 1. Add electrical projections (gap junctions)
-            projection_counter = 0
-            electrical_proj_map = {}  # To track existing projections
-            
-            for proj_data in electrical_projections:
-                source_class = proj_data['source_class']
-                target_class = proj_data['target_class']
-                source_idx = proj_data['source_idx']
-                target_idx = proj_data['target_idx']
-                
-                # Create projection ID
-                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
-                
-                # Check if we've already created this projection
-                if proj_id not in electrical_proj_map:
-                    # Create new electrical projection
-                    proj = etree.SubElement(
-                        network,
-                        "electricalProjection",
-                        id=proj_id,
-                        presynapticPopulation=source_class,
-                        postsynapticPopulation=target_class
-                    )
-                    electrical_proj_map[proj_id] = proj
-                else:
-                    proj = electrical_proj_map[proj_id]
-                
-                # Add connection
-                conn = etree.SubElement(
-                    proj,
-                    "electricalConnection",
-                    id=str(projection_counter),
-                    preCell=str(source_idx),
-                    postCell=str(target_idx),
-                    synapse="Generic_GJ"
-                )
-                
-                # Add synaptic location parameters
-                pre_segment = np.random.randint(1, 10)
-                post_segment = np.random.randint(1, 10)
-                pre_frac = np.random.random()
-                post_frac = np.random.random()
-                
-                conn.attrib["preSegment"] = str(pre_segment)
-                conn.attrib["postSegment"] = str(post_segment)
-                conn.attrib["preFractionAlong"] = str(pre_frac)
-                conn.attrib["postFractionAlong"] = str(post_frac)
-                
-                projection_counter += 1
-            
-            # 2. Add chemical projections AFTER electrical projections
+            projection_counter = 0      
+            # 1. Add chemical projections
             chemical_proj_map = {}  # To track existing projections
             
             for proj_data in chemical_projections:
@@ -775,6 +724,56 @@ class GraphToNeuroML:
                 
                 conn.attrib["preSegmentId"] = str(pre_segment)
                 conn.attrib["postSegmentId"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
+                
+                projection_counter += 1
+
+            # Now add electrical projections
+            # 2. Add electrical projections (gap junctions)
+            electrical_proj_map = {}  # To track existing projections
+            
+            for proj_data in electrical_projections:
+                source_class = proj_data['source_class']
+                target_class = proj_data['target_class']
+                source_idx = proj_data['source_idx']
+                target_idx = proj_data['target_idx']
+                
+                # Create projection ID
+                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
+                
+                # Check if we've already created this projection
+                if proj_id not in electrical_proj_map:
+                    # Create new electrical projection
+                    proj = etree.SubElement(
+                        network,
+                        "electricalProjection",
+                        id=proj_id,
+                        presynapticPopulation=source_class,
+                        postsynapticPopulation=target_class
+                    )
+                    electrical_proj_map[proj_id] = proj
+                else:
+                    proj = electrical_proj_map[proj_id]
+                
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "electricalConnection",
+                    id=str(projection_counter),
+                    preCell=str(source_idx),
+                    postCell=str(target_idx),
+                    synapse="Generic_GJ"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegment"] = str(pre_segment)
+                conn.attrib["postSegment"] = str(post_segment)
                 conn.attrib["preFractionAlong"] = str(pre_frac)
                 conn.attrib["postFractionAlong"] = str(post_frac)
                 
