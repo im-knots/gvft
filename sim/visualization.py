@@ -170,10 +170,10 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
                 # Export to NeuroML
                 neuroml_converter.export_to_neuroml(G, neuroml_path, node_types)
                 
-                # Also save cell type assignments to JSON for reference
-                json_filename = f"cell_types_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.json"
-                json_path = os.path.join(neuroml_output_dir, json_filename)
-                neuroml_converter.export_cell_types_to_json(node_types, json_path)
+                # # Also save cell type assignments to JSON for reference
+                # json_filename = f"cell_types_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.json"
+                # json_path = os.path.join(neuroml_output_dir, json_filename)
+                # neuroml_converter.export_cell_types_to_json(node_types, json_path)
                 
                 print(f"  Saved NeuroML for timestep t={t} to {neuroml_filename}")
             except Exception as e:

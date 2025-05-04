@@ -82,14 +82,36 @@ class GraphToNeuroML:
             }
         }
         
-        # Synapse types for the pharyngeal nervous system
-        # Exact names from the organicNeuroML2 directory
+        # Synapse types from the original NeuroML file
         self.synapse_types = {
             'excitatory': 'Acetylcholine',
             'inhibitory': 'Glutamate',
             'modulatory': 'Serotonin_Glutamate',
             'gap_junction': 'Generic_GJ'
         }
+        
+        # Somatic neurons that connect to pharyngeal nervous system
+        # Based on the original PharyngealNetwork.net.nml file
+        self.somatic_connections = [
+            # Format: (pharyngeal_neuron, somatic_neuron, direction, synapse_type)
+            ("I1L", "RMDDL", "outgoing", "Acetylcholine"),
+            ("I1L", "RMDVL", "outgoing", "Acetylcholine"),
+            ("I1R", "RMDDR", "outgoing", "Acetylcholine"),
+            ("I1R", "RMDVR", "outgoing", "Acetylcholine"),
+            ("I2L", "URXL", "outgoing", "Glutamate"),
+            ("I2R", "URXR", "outgoing", "Glutamate"),
+            ("I1L", "AVKL", "incoming", "Acetylcholine"),
+            ("I1R", "AVKR", "incoming", "Acetylcholine"),
+            ("I1L", "RIS", "incoming", "Glutamate"),
+            ("I1R", "RIS", "incoming", "Glutamate"),
+            ("I2L", "AVAL", "incoming", "Acetylcholine"),
+            ("I2R", "AVAR", "incoming", "Acetylcholine"),
+            ("I4", "SMBVL", "incoming", "Acetylcholine"),
+            ("I4", "SMBVR", "incoming", "Acetylcholine")
+        ]
+        
+        # Collect unique somatic neurons for includes
+        self.somatic_neurons = sorted(list(set([conn[1] for conn in self.somatic_connections])))
     
     def compute_network_metrics(self, G):
         """
@@ -113,19 +135,11 @@ class GraphToNeuroML:
         # Community detection for module identification
         communities = None
         try:
-            # Convert to undirected for community detection
-            G_undirected = G.to_undirected()
             # Attempt to find communities with Louvain method
-            communities = list(nx.community.louvain_communities(G_undirected, resolution=1.0))
-            
-            # Convert to dictionary format
-            community_map = {}
-            for idx, comm in enumerate(communities):
-                for node in comm:
-                    community_map[node] = idx
-            communities = community_map
-        except Exception as e:
-            # Fall back to connected components if community detection fails
+            import community as community_louvain
+            communities = community_louvain.best_partition(G.to_undirected())
+        except ImportError:
+            # Fall back to connected components if python-louvain is not available
             communities = {}
             for i, comp in enumerate(nx.connected_components(G.to_undirected())):
                 for node in comp:
@@ -246,71 +260,65 @@ class GraphToNeuroML:
         # Count how many neurons we've already assigned of each detailed type
         detailed_counts = {neuron_type: 0 for neuron_type in self.all_neuron_types}
         
-        # Group nodes by community to assign similar cell types to nodes in the same community
-        community_nodes = {}
-        for node, m in metrics.items():
-            community = m['community']
-            if community not in community_nodes:
-                community_nodes[community] = []
-            community_nodes[community].append(node)
-        
-        # Assign detailed cell types by community
-        for community, nodes in community_nodes.items():
-            # Get basic cell types for nodes in this community
-            community_types = [basic_assignments[node] for node in nodes]
-            most_common_type = Counter(community_types).most_common(1)[0][0]
-            
+        # Assign detailed cell types
+        for node, basic_type in basic_assignments.items():
             # Get all possible detailed cell types for this basic type
             possible_classes = []
             for prefix, types in self.cell_classes.items():
-                if self.prefix_to_type.get(prefix) == most_common_type:
+                if self.prefix_to_type.get(prefix) == basic_type:
                     possible_classes.extend(types)
             
-            # If we have no detailed classes for this type, use a different type
+            # If we have no detailed classes for this type, just use a default
             if not possible_classes:
-                for prefix, types in self.cell_classes.items():
-                    possible_classes.extend(types)
-            
-            # Sort by current usage (prefer least used types)
-            possible_classes.sort(key=lambda t: detailed_counts.get(t, 0))
-            
-            # Assign cell types to nodes in this community
-            for node in nodes:
-                basic_type = basic_assignments[node]
-                
-                # Find a matching class that hasn't been used too much
-                chosen_type = None
-                for t in possible_classes:
-                    prefix = t[0] if not t.startswith(('MC', 'NSM')) else t[:3]
-                    if self.prefix_to_type.get(prefix) == basic_type:
-                        chosen_type = t
-                        break
-                
-                # If no matching class, use the first one that matches the basic type
-                if chosen_type is None:
-                    matching_types = []
-                    for t in self.all_neuron_types:
-                        prefix = t[0] if not t.startswith(('MC', 'NSM')) else t[:3]
-                        if self.prefix_to_type.get(prefix) == basic_type:
-                            matching_types.append(t)
-                    
-                    if matching_types:
-                        matching_types.sort(key=lambda t: detailed_counts.get(t, 0))
-                        chosen_type = matching_types[0]
-                    else:
-                        # Last resort: use any available type
-                        available_types = sorted(self.all_neuron_types, 
-                                               key=lambda t: detailed_counts.get(t, 0))
-                        chosen_type = available_types[0] if available_types else "M1"
-                
-                # Update count and store assignment
-                detailed_counts[chosen_type] = detailed_counts.get(chosen_type, 0) + 1
                 detailed_assignments[node] = {
                     'basic_type': basic_type,
-                    'cell_class': chosen_type
+                    'cell_class': basic_type.upper() + str(detailed_counts.get(basic_type, 0) + 1)
                 }
+                continue
+            
+            # Pick the least used neuron type to ensure even distribution
+            counts = [(t, detailed_counts[t]) for t in possible_classes]
+            counts.sort(key=lambda x: x[1])  # Sort by count (ascending)
+            
+            chosen_type = counts[0][0]
+            detailed_counts[chosen_type] += 1
+            
+            # Store both basic and detailed assignments
+            detailed_assignments[node] = {
+                'basic_type': basic_type,
+                'cell_class': chosen_type
+            }
         
         return detailed_assignments
+    
+    def validate_pharyngeal_interface(self, node_types):
+        """
+        Validate that all required interface neurons are present in the network
+        
+        Args:
+            node_types (dict): Dictionary mapping node IDs to cell types
+            
+        Returns:
+            list: List of missing required neurons
+        """
+        # Essential interface neurons that connect to somatic nervous system
+        required_neurons = [pharyngeal_neuron for pharyngeal_neuron, _, _, _ in self.somatic_connections]
+        # Remove duplicates
+        required_neurons = list(set(required_neurons))
+        
+        # Check if all required neurons are present
+        present_neurons = set()
+        for node_id, type_info in node_types.items():
+            cell_class = type_info['cell_class']
+            present_neurons.add(cell_class)
+        
+        # Find missing neurons
+        missing_neurons = []
+        for neuron in required_neurons:
+            if neuron not in present_neurons:
+                missing_neurons.append(neuron)
+        
+        return missing_neurons
     
     def assign_synapse_properties(self, G, node_types):
         """
@@ -324,14 +332,6 @@ class GraphToNeuroML:
             dict: Dictionary of dictionaries with edge properties
         """
         edge_props = {}
-        
-        # Count the different connection types for reporting
-        connection_counts = {
-            'excitatory': 0,
-            'inhibitory': 0,
-            'modulatory': 0,
-            'gap_junction': 0
-        }
         
         # For each edge in the graph
         for source, target, data in G.edges(data=True):
@@ -379,7 +379,7 @@ class GraphToNeuroML:
             synapse_type = self.synapse_types.get(connection_type, 'Acetylcholine')
             
             # Decide if this is a gap junction (electrical synapse)
-            # IMPORTANT: Increase probability of gap junctions
+            # In pharyngeal system, these are often between same-type cells or symmetrical pairs
             is_gap_junction = False
             if (source_type == target_type or 
                 (source_class.endswith('L') and target_class.endswith('R') and 
@@ -387,20 +387,12 @@ class GraphToNeuroML:
                 (source_class.endswith('R') and target_class.endswith('L') and 
                 source_class[:-1] == target_class[:-1])):
                 # Symmetrically positioned cells often have gap junctions
-                # Increase probability from 0.3 to 0.5
-                is_gap_junction = np.random.random() < 0.5
-            
-            # Additional rule: Some specific cell classes are known to form gap junctions
-            if ('M' in source_class and 'M' in target_class) or ('MC' in source_class and 'MC' in target_class):
-                # Motor neurons and marginal cells often form gap junctions with their class
-                is_gap_junction = np.random.random() < 0.6
+                # With a certain probability
+                is_gap_junction = np.random.random() < 0.3
             
             # If it's a gap junction, override synapse type
             if is_gap_junction:
                 synapse_type = self.synapse_types['gap_junction']
-                connection_counts['gap_junction'] += 1
-            else:
-                connection_counts[connection_type] += 1
             
             # Calculate delay based on connection weight
             # lower weights get higher delays
@@ -417,14 +409,7 @@ class GraphToNeuroML:
                 'synapse_type': synapse_type,
                 'is_gap_junction': is_gap_junction
             }
-        
-        # Print statistics
-        print(f"Connection type distribution:")
-        print(f"  Excitatory: {connection_counts['excitatory']}")
-        print(f"  Inhibitory: {connection_counts['inhibitory']}")
-        print(f"  Modulatory: {connection_counts['modulatory']}")
-        print(f"  Gap Junctions: {connection_counts['gap_junction']}")
-        
+            
         return edge_props
     
     def create_neuroml_document(self, network_id="EvolvedNetwork"):
@@ -448,75 +433,23 @@ class GraphToNeuroML:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         notes.text = f"NeuroML2 network generated from GVFT simulation on {timestamp}\n"
         
+        # Include references to the somatic neurons needed for interface
+        for neuron in self.somatic_neurons:
+            # Note that these includes assume the cell definitions exist in the same directory
+            etree.SubElement(neuroml, "include", href=f"{neuron}.cell.nml")
+        
         return neuroml
     
-    def get_synapse_filename(self, synapse_type):
-        """
-        Get the correct filename for a synapse type based on the organicNeuroML2 directory
-        
-        Args:
-            synapse_type (str): The synapse type name
-            
-        Returns:
-            str: Synapse filename with extension
-        """
-        # Map to exact filenames as they appear in the organicNeuroML2 directory
-        synapse_files = {
-            'Acetylcholine': 'Acetylcholine.synapse.nml',
-            'Glutamate': 'Glutamate.synapse.nml',
-            'Serotonin': 'Serotonin.synapse.nml',
-            'Serotonin_Glutamate': 'Serotonin_Glutamate.synapse.nml', 
-            'Serotonin_Acetylcholine': 'Serotonin_Acetylcholine.synapse.nml',
-            'Acetylcholine_Tyramine': 'Acetylcholine_Tyramine.synapse.nml',
-            'Dopamine': 'Dopamine.synapse.nml',
-            'GABA': 'GABA.synapse.nml',
-            'FMRFamide': 'FMRFamide.synapse.nml',
-            'Generic_GJ': 'Generic_GJ.nml',
-            'Octapamine': 'Octapamine.synapse.nml'
-        }
-        
-        return synapse_files.get(synapse_type, f"{synapse_type}.synapse.nml")
-    
-    def validate_cell_type(self, cell_type):
-        """
-        Validate that a cell type exists in our predefined list
-        
-        Args:
-            cell_type (str): Cell type to validate
-            
-        Returns:
-            str: Valid cell type or replacement if not found
-        """
-        if cell_type in self.all_neuron_types:
-            return cell_type
-        
-        # If not found, look for a prefix match
-        prefix = cell_type[0] if len(cell_type) > 0 else ''
-        if prefix in self.cell_classes:
-            return self.cell_classes[prefix][0]  # Return the first of that class
-        
-        # Default to a common motor neuron if no match
-        return "M1"
-    
-    def export_to_neuroml(self, G, output_path, node_types=None, external_connections=None):
+    def export_to_neuroml(self, G, output_path, node_types=None):
         """
         Export a graph to a NeuroML file that matches the C. elegans pharyngeal
-        nervous system format, with connections to the rest of the nervous system.
+        nervous system format, including connections to the somatic nervous system
         
         Args:
             G (nx.Graph): The network graph
             output_path (str): Path to save the NeuroML file
             node_types (dict, optional): Dictionary mapping node IDs to cell types
-            external_connections (list, optional): List of connections to external neurons
-                Each item should be a dict with:
-                {
-                    'source': source neuron name (pharyngeal),
-                    'target': target neuron name (external),
-                    'weight': connection weight,
-                    'synapse_type': synapse type,
-                    'is_gap_junction': boolean
-                }
-                
+            
         Returns:
             bool: True if successful, False otherwise
         """
@@ -525,7 +458,13 @@ class GraphToNeuroML:
             if node_types is None:
                 node_types = self.assign_cell_types(G)
             
-            # Assign synapse properties to internal connections
+            # Validate pharyngeal interface neurons
+            missing_neurons = self.validate_pharyngeal_interface(node_types)
+            if missing_neurons:
+                print(f"Warning: Missing required interface neurons: {missing_neurons}")
+                print("Some connections to somatic nervous system may be incomplete.")
+            
+            # Assign synapse properties
             synapse_props = self.assign_synapse_properties(G, node_types)
             
             # Create the NeuroML document
@@ -533,18 +472,9 @@ class GraphToNeuroML:
             neuroml_doc = self.create_neuroml_document(network_id)
             
             # Include references to necessary cell and synapse files
-            included_cells = set()
-            # Add internal cells first
+            # Note: These files should exist alongside the NeuroML file
             for cell_class in set(info['cell_class'] for info in node_types.values()):
                 etree.SubElement(neuroml_doc, "include", href=f"{cell_class}.cell.nml")
-                included_cells.add(cell_class)
-            
-            # Add external cell references if they exist in external_connections
-            if external_connections:
-                for conn in external_connections:
-                    if 'target' in conn and conn['target'] not in included_cells:
-                        etree.SubElement(neuroml_doc, "include", href=f"{conn['target']}.cell.nml")
-                        included_cells.add(conn['target'])
             
             # Include synapse references
             for synapse_type in set(self.synapse_types.values()):
@@ -609,220 +539,42 @@ class GraphToNeuroML:
                         z=str(pos[2] if len(pos) > 2 else 0.0)
                     )
             
-            # Create instance ID mapping for easier reference
-            instance_map = {}
-            for cell_class, node_ids in population_nodes.items():
-                for i, node_id in enumerate(node_ids):
-                    instance_map[node_id] = (cell_class, i)
-            
-            # Group connections by synapse type and create projections
-            projection_counter = 0
-            for conn_id, props in synapse_props.items():
-                source_node = props['source']
-                target_node = props['target']
-                
-                # Get source and target cell classes and indices
-                source_class, source_idx = instance_map[source_node]
-                target_class, target_idx = instance_map[target_node]
-                
-                # Creating projection ID following the conventions in PharyngealNetwork.net.nml
-                # Format: NCXLS_<SOURCE>_<TARGET> for chemical synapses
-                # Format: NCXLS_<SOURCE>_<TARGET>_GJ for gap junctions
-                synapse_type = props['synapse_type']
-                is_gap_junction = props['is_gap_junction']
-                
-                if is_gap_junction:
-                    proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
-                    
-                    # Check if projection already exists
-                    existing_proj = neuroml_doc.find(f".//electricalProjection[@id='{proj_id}']")
-                    if existing_proj is None:
-                        # Create new electrical projection
-                        proj = etree.SubElement(
-                            network,
-                            "electricalProjection",
-                            id=proj_id,
-                            presynapticPopulation=source_class,
-                            postsynapticPopulation=target_class
-                        )
-                    else:
-                        proj = existing_proj
-                    
-                    # Add connection
-                    conn = etree.SubElement(
-                        proj,
-                        "electricalConnection",
-                        id=str(projection_counter),
-                        preCell=str(source_idx),
-                        postCell=str(target_idx),
-                        synapse="Generic_GJ"
+            # Create somatic neuron populations if they're not already in the network
+            for somatic_neuron in self.somatic_neurons:
+                if somatic_neuron not in population_nodes:
+                    # Create population for this somatic neuron
+                    pop = etree.SubElement(
+                        network,
+                        "population",
+                        id=somatic_neuron,
+                        component=somatic_neuron,
+                        type="populationList",
+                        size="1"
                     )
                     
-                    # Add synaptic location parameters
-                    pre_segment = np.random.randint(1, 10)
-                    post_segment = np.random.randint(1, 10)
-                    pre_frac = np.random.random()
-                    post_frac = np.random.random()
+                    # Add color annotation (predictable but different for somatic)
+                    annotation = etree.SubElement(pop, "annotation")
+                    color_hash = sum(ord(c) for c in somatic_neuron) % 100
+                    r = (color_hash * 11) % 100 / 100
+                    g = (color_hash * 23) % 100 / 100
+                    b = (color_hash * 7) % 100 / 100
+                    etree.SubElement(annotation, "property", tag="color", value=f"{r} {g} {b}")
                     
-                    conn.attrib["preSegment"] = str(pre_segment)
-                    conn.attrib["postSegment"] = str(post_segment)
-                    conn.attrib["preFractionAlong"] = str(pre_frac)
-                    conn.attrib["postFractionAlong"] = str(post_frac)
-                    
-                else:
-                    # Chemical synapse
-                    proj_id = f"NCXLS_{source_class}_{target_class}"
-                    
-                    # Check if projection already exists
-                    existing_proj = neuroml_doc.find(f".//projection[@id='{proj_id}']")
-                    if existing_proj is None:
-                        # Create new projection
-                        proj = etree.SubElement(
-                            network,
-                            "projection",
-                            id=proj_id,
-                            presynapticPopulation=source_class,
-                            postsynapticPopulation=target_class,
-                            synapse=synapse_type
-                        )
-                    else:
-                        proj = existing_proj
-                    
-                    # Add connection
-                    conn = etree.SubElement(
-                        proj,
-                        "connection",
-                        id=str(projection_counter),
-                        preCellId=f"../{source_class}/{source_idx}/{source_class}",
-                        postCellId=f"../{target_class}/{target_idx}/{target_class}"
+                    # Add instance with a default position outside pharyngeal network
+                    instance = etree.SubElement(pop, "instance", id="0")
+                    etree.SubElement(
+                        instance,
+                        "location",
+                        x="5.0",
+                        y="0.0",
+                        z="0.0"
                     )
-                    
-                    # Add synaptic location parameters
-                    pre_segment = np.random.randint(1, 10)
-                    post_segment = np.random.randint(1, 10)
-                    pre_frac = np.random.random()
-                    post_frac = np.random.random()
-                    
-                    conn.attrib["preSegmentId"] = str(pre_segment)
-                    conn.attrib["postSegmentId"] = str(post_segment)
-                    conn.attrib["preFractionAlong"] = str(pre_frac)
-                    conn.attrib["postFractionAlong"] = str(post_frac)
-                
-                projection_counter += 1
             
-            # Add external connections
-            if external_connections:
-                external_projection_counter = projection_counter
-                
-                # Process external connections
-                for ext_conn in external_connections:
-                    source_class = ext_conn['source']  # This should be a pharyngeal neuron
-                    target_class = ext_conn['target']  # This is an external neuron
-                    synapse_type = ext_conn.get('synapse_type', 'Acetylcholine')  # Default to acetylcholine
-                    is_gap_junction = ext_conn.get('is_gap_junction', False)
-                    weight = ext_conn.get('weight', 1.0)
-                    
-                    # Find source cell in our network
-                    source_indices = []
-                    for node_id, (cell_class, idx) in instance_map.items():
-                        if cell_class == source_class:
-                            source_indices.append(idx)
-                    
-                    if not source_indices:
-                        print(f"Warning: Source cell {source_class} not found in network, skipping external connection.")
-                        continue
-                    
-                    # For gap junctions
-                    if is_gap_junction:
-                        proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
-                        
-                        # Check if projection already exists
-                        existing_proj = neuroml_doc.find(f".//electricalProjection[@id='{proj_id}']")
-                        if existing_proj is None:
-                            # Create new electrical projection to external target
-                            proj = etree.SubElement(
-                                network,
-                                "electricalProjection",
-                                id=proj_id,
-                                presynapticPopulation=source_class,
-                                postsynapticPopulation=target_class
-                            )
-                        else:
-                            proj = existing_proj
-                        
-                        # Use the first instance of the source cell
-                        source_idx = source_indices[0]
-                        
-                        # External target cell (assume it's the first instance)
-                        target_idx = 0
-                        
-                        # Add gap junction connection
-                        conn = etree.SubElement(
-                            proj,
-                            "electricalConnection",
-                            id=str(external_projection_counter),
-                            preCell=str(source_idx),
-                            postCell=str(target_idx),
-                            synapse="Generic_GJ"
-                        )
-                        
-                        # Add synaptic location parameters
-                        pre_segment = np.random.randint(1, 10)
-                        post_segment = np.random.randint(1, 10)
-                        pre_frac = np.random.random()
-                        post_frac = np.random.random()
-                        
-                        conn.attrib["preSegment"] = str(pre_segment)
-                        conn.attrib["postSegment"] = str(post_segment)
-                        conn.attrib["preFractionAlong"] = str(pre_frac)
-                        conn.attrib["postFractionAlong"] = str(post_frac)
-                        
-                    else:
-                        # Chemical synapse to external target
-                        proj_id = f"NCXLS_{source_class}_{target_class}"
-                        
-                        # Check if projection already exists
-                        existing_proj = neuroml_doc.find(f".//projection[@id='{proj_id}']")
-                        if existing_proj is None:
-                            # Create new projection
-                            proj = etree.SubElement(
-                                network,
-                                "projection",
-                                id=proj_id,
-                                presynapticPopulation=source_class,
-                                postsynapticPopulation=target_class,
-                                synapse=synapse_type
-                            )
-                        else:
-                            proj = existing_proj
-                        
-                        # Use the first instance of the source cell
-                        source_idx = source_indices[0]
-                        
-                        # External target cell (assume it's the first instance)
-                        target_idx = 0
-                        
-                        # Add connection
-                        conn = etree.SubElement(
-                            proj,
-                            "connection",
-                            id=str(external_projection_counter),
-                            preCellId=f"../{source_class}/{source_idx}/{source_class}",
-                            postCellId=f"../{target_class}/{target_idx}/{target_class}"
-                        )
-                        
-                        # Add synaptic location parameters
-                        pre_segment = np.random.randint(1, 10)
-                        post_segment = np.random.randint(1, 10)
-                        pre_frac = np.random.random()
-                        post_frac = np.random.random()
-                        
-                        conn.attrib["preSegmentId"] = str(pre_segment)
-                        conn.attrib["postSegmentId"] = str(post_segment)
-                        conn.attrib["preFractionAlong"] = str(pre_frac)
-                        conn.attrib["postFractionAlong"] = str(post_frac)
-                    
-                    external_projection_counter += 1
+            # Create internal pharyngeal projections
+            self._create_internal_projections(network, synapse_props, node_types, population_nodes)
+            
+            # Create somatic-pharyngeal interface connections
+            self._create_interface_connections(network, node_types, population_nodes)
             
             # Write to file
             tree = etree.ElementTree(neuroml_doc)
@@ -835,399 +587,204 @@ class GraphToNeuroML:
             print(f"Error exporting to NeuroML: {e}")
             return False
     
-    def export_cell_types_to_json(self, node_types, output_path):
-        """
-        Export the assigned cell types to a JSON file
-        
-        Args:
-            node_types (dict): Dictionary mapping node IDs to cell types
-            output_path (str): Path to save the JSON file
+    def _create_internal_projections(self, network, synapse_props, node_types, population_nodes):
+        """Create internal projections within the pharyngeal nervous system"""
+        projection_counter = 0
+        for conn_id, props in synapse_props.items():
+            source_node = props['source']
+            target_node = props['target']
             
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Convert to a format suitable for JSON
-            output_data = {
-                'node_types': node_types,
-                'cell_class_distribution': {}
-            }
+            # Get source and target cell classes
+            source_class = node_types[source_node]['cell_class']
+            target_class = node_types[target_node]['cell_class']
             
-            # Count cell classes
-            cell_classes = [info['cell_class'] for info in node_types.values()]
-            class_counts = Counter(cell_classes)
-            total_count = len(cell_classes)
+            # Get indices within their respective populations
+            source_idx = population_nodes[source_class].index(source_node)
+            target_idx = population_nodes[target_class].index(target_node)
             
-            for cell_class, count in class_counts.items():
-                output_data['cell_class_distribution'][cell_class] = count / total_count
+            # Creating projection ID following the conventions in PharyngealNetwork.net.nml
+            # Format: NCXLS_<SOURCE>_<TARGET> for chemical synapses
+            # Format: NCXLS_<SOURCE>_<TARGET>_GJ for gap junctions
+            synapse_type = props['synapse_type']
+            is_gap_junction = props['is_gap_junction']
             
-            # Add basic type distribution
-            basic_types = [info['basic_type'] for info in node_types.values()]
-            basic_counts = Counter(basic_types)
-            
-            output_data['basic_type_distribution'] = {
-                t: basic_counts.get(t, 0) / total_count for t in ['motor', 'sensory', 'inter']
-            }
-            
-            # Write to file
-            with open(output_path, 'w') as f:
-                json.dump(output_data, f, indent=2)
+            if is_gap_junction:
+                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
                 
-            print(f"Successfully exported cell types to {output_path}")
-            return True
+                # Check if projection already exists
+                existing_proj = network.find(f".//electricalProjection[@id='{proj_id}']")
+                if existing_proj is None:
+                    # Create new electrical projection
+                    proj = etree.SubElement(
+                        network,
+                        "electricalProjection",
+                        id=proj_id,
+                        presynapticPopulation=source_class,
+                        postsynapticPopulation=target_class
+                    )
+                else:
+                    proj = existing_proj
+                
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "electricalConnection",
+                    id=str(projection_counter),
+                    preCell=str(source_idx),
+                    postCell=str(target_idx),
+                    synapse="Generic_GJ"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegment"] = str(pre_segment)
+                conn.attrib["postSegment"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
+                
+            else:
+                # Chemical synapse
+                proj_id = f"NCXLS_{source_class}_{target_class}"
+                
+                # Check if projection already exists
+                existing_proj = network.find(f".//projection[@id='{proj_id}']")
+                if existing_proj is None:
+                    # Create new projection
+                    proj = etree.SubElement(
+                        network,
+                        "projection",
+                        id=proj_id,
+                        presynapticPopulation=source_class,
+                        postsynapticPopulation=target_class,
+                        synapse=synapse_type
+                    )
+                else:
+                    proj = existing_proj
+                
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "connection",
+                    id=str(projection_counter),
+                    preCellId=f"../{source_class}/{source_idx}/{source_class}",
+                    postCellId=f"../{target_class}/{target_idx}/{target_class}"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegmentId"] = str(pre_segment)
+                conn.attrib["postSegmentId"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
             
-        except Exception as e:
-            print(f"Error exporting cell types: {e}")
-            return False
+            projection_counter += 1
     
-    def analyze_neuroml_file(self, neuroml_path):
-        """
-        Analyze an existing NeuroML file to extract cell classes and connection patterns
+    def _create_interface_connections(self, network, node_types, population_nodes):
+        """Create connections between pharyngeal and somatic nervous system"""
+        # Counter for connection IDs
+        projection_counter = 1000  # Start from 1000 to avoid conflicts
         
-        Args:
-            neuroml_path (str): Path to the NeuroML file
+        # Create the interface connections
+        for pharyngeal_neuron, somatic_neuron, direction, synapse_type in self.somatic_connections:
+            # Check if the pharyngeal neuron exists in our node types
+            pharyngeal_found = False
+            for cell_class in population_nodes.keys():
+                if cell_class == pharyngeal_neuron:
+                    pharyngeal_found = True
+                    break
             
-        Returns:
-            dict: Dictionary with extracted information
-        """
-        try:
-            # Parse the NeuroML file
-            tree = etree.parse(neuroml_path)
-            root = tree.getroot()
-            
-            # Extract namespaces
-            nsmap = {k if k is not None else 'neuroml': v for k, v in root.nsmap.items()}
-            
-            # Extract all cell types (populations)
-            populations = {}
-            for pop in root.xpath('//neuroml:population', namespaces=nsmap):
-                pop_id = pop.get('id')
-                component = pop.get('component')
-                size = pop.get('size')
+            if not pharyngeal_found:
+                print(f"Warning: Pharyngeal neuron {pharyngeal_neuron} not found in the network, skipping interface connection.")
+                continue
                 
-                populations[pop_id] = {
-                    'component': component,
-                    'size': size
-                }
-            
-            # Extract chemical projections
-            chem_projections = {}
-            for proj in root.xpath('//neuroml:projection', namespaces=nsmap):
-                proj_id = proj.get('id')
-                pre_pop = proj.get('presynapticPopulation')
-                post_pop = proj.get('postsynapticPopulation')
-                synapse = proj.get('synapse')
+            # For outgoing connections (pharyngeal -> somatic)
+            if direction == "outgoing":
+                # Create projection ID
+                proj_id = f"NC_{pharyngeal_neuron}_{somatic_neuron}"
                 
-                # Count connections
-                connections = proj.xpath('.//neuroml:connection', namespaces=nsmap)
+                # Check if projection already exists
+                existing_proj = network.find(f".//projection[@id='{proj_id}']")
+                if existing_proj is None:
+                    # Create new projection
+                    proj = etree.SubElement(
+                        network,
+                        "projection",
+                        id=proj_id,
+                        presynapticPopulation=pharyngeal_neuron,
+                        postsynapticPopulation=somatic_neuron,
+                        synapse=synapse_type
+                    )
+                else:
+                    proj = existing_proj
                 
-                chem_projections[proj_id] = {
-                    'pre_pop': pre_pop,
-                    'post_pop': post_pop,
-                    'synapse': synapse,
-                    'connection_count': len(connections)
-                }
-            
-            # Extract electrical projections (gap junctions)
-            elect_projections = {}
-            for proj in root.xpath('//neuroml:electricalProjection', namespaces=nsmap):
-                proj_id = proj.get('id')
-                pre_pop = proj.get('presynapticPopulation')
-                post_pop = proj.get('postsynapticPopulation')
+                # Add connection - note we use the first neuron in each population
+                conn = etree.SubElement(
+                    proj,
+                    "connection",
+                    id=str(projection_counter),
+                    preCellId=f"../{pharyngeal_neuron}/0/{pharyngeal_neuron}",
+                    postCellId=f"../{somatic_neuron}/0/{somatic_neuron}"
+                )
                 
-                # Count connections
-                connections = proj.xpath('.//neuroml:electricalConnection', namespaces=nsmap)
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
                 
-                elect_projections[proj_id] = {
-                    'pre_pop': pre_pop,
-                    'post_pop': post_pop,
-                    'connection_count': len(connections)
-                }
-            
-            # Extract included files
-            include_files = []
-            for include in root.xpath('//neuroml:include', namespaces=nsmap):
-                href = include.get('href')
-                include_files.append(href)
-            
-            # Collect cell classes
-            cell_classes = {}
-            for include_file in include_files:
-                if include_file.endswith('.cell.nml'):
-                    cell_name = include_file.split('.cell.nml')[0]
-                    
-                    # Determine basic type from prefix
-                    basic_type = 'unknown'
-                    for prefix, class_type in self.prefix_to_type.items():
-                        if cell_name.startswith(prefix):
-                            basic_type = class_type
-                            break
-                    
-                    cell_classes[cell_name] = {
-                        'basic_type': basic_type
-                    }
-            
-            # Update internal cell classes based on the file
-            self.all_neuron_types = list(cell_classes.keys())
-            
-            # Group cell classes by prefix
-            prefix_groups = {}
-            for cell_name in self.all_neuron_types:
-                # Extract prefix (M, I, MC, etc.)
-                prefix = None
-                for p in self.prefix_to_type.keys():
-                    if cell_name.startswith(p):
-                        prefix = p
-                        break
+                conn.attrib["preSegmentId"] = str(pre_segment)
+                conn.attrib["postSegmentId"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
                 
-                if prefix:
-                    if prefix not in prefix_groups:
-                        prefix_groups[prefix] = []
-                    prefix_groups[prefix].append(cell_name)
-                    
-            # Update cell classes
-            self.cell_classes = prefix_groups
-            
-            # Collect all synapse types
-            synapse_types = {}
-            for include_file in include_files:
-                if include_file.endswith('synapse.nml') or include_file.endswith('.nml'):
-                    base_name = include_file.split('.')[0]
-                    if 'Acetylcholine' in base_name:
-                        synapse_types['excitatory'] = base_name
-                    elif 'Glutamate' in base_name:
-                        synapse_types['inhibitory'] = base_name
-                    elif 'Serotonin' in base_name or 'Dopamine' in base_name:
-                        synapse_types['modulatory'] = base_name
-                    elif 'GJ' in base_name or 'gap' in base_name.lower():
-                        synapse_types['gap_junction'] = base_name
-            
-            # Update synapse types if found
-            if synapse_types:
-                self.synapse_types.update(synapse_types)
-            
-            return {
-                'populations': populations,
-                'chemical_projections': chem_projections,
-                'electrical_projections': elect_projections,
-                'cell_classes': cell_classes,
-                'synapse_types': self.synapse_types
-            }
-            
-        except Exception as e:
-            print(f"Error analyzing NeuroML file: {e}")
-            return {}
-    
-    def update_cell_classes_from_directory(self, nml_dir):
-        """
-        Update cell classes by scanning a directory of NeuroML files
-        
-        Args:
-            nml_dir (str): Path to directory containing NeuroML files
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Scan the directory for cell files
-            cell_types = []
-            for filename in os.listdir(nml_dir):
-                if filename.endswith('.cell.nml'):
-                    cell_name = filename.split('.cell.nml')[0]
-                    cell_types.append(cell_name)
-            
-            if not cell_types:
-                print(f"No cell files found in {nml_dir}")
-                return False
-            
-            # Update neuron types
-            self.all_neuron_types = cell_types
-            
-            # Group by prefix to update cell classes
-            prefix_groups = {}
-            
-            # Sort the cell types to ensure consistent grouping
-            for cell_name in sorted(cell_types):
-                # Detect prefix - special handling for multi-character prefixes
-                prefix = None
-                if cell_name.startswith('NSM'):
-                    prefix = 'NSM'
-                elif cell_name.startswith('MC'):
-                    prefix = 'MC'
-                elif cell_name.startswith('MI'):
-                    prefix = 'MI'
-                elif len(cell_name) > 0:
-                    # Default to first character as prefix
-                    prefix = cell_name[0]
+                projection_counter += 1
                 
-                if prefix:
-                    if prefix not in prefix_groups:
-                        prefix_groups[prefix] = []
-                    prefix_groups[prefix].append(cell_name)
-            
-            # Filter to only include pharyngeal-related cell types
-            pharyngeal_prefixes = {'M', 'I', 'MC', 'MI', 'NSM'}
-            self.cell_classes = {k: v for k, v in prefix_groups.items() if k in pharyngeal_prefixes}
-            
-            # If no pharyngeal cells found, just use all cells but give a warning
-            if not self.cell_classes:
-                print("Warning: No pharyngeal neuron types found. Using all cell types.")
-                self.cell_classes = prefix_groups
-            
-            # Update prefix to type mapping if needed
-            for prefix in self.cell_classes.keys():
-                if prefix not in self.prefix_to_type:
-                    if prefix in {'M'}:
-                        self.prefix_to_type[prefix] = 'motor'
-                    elif prefix in {'I'}:
-                        self.prefix_to_type[prefix] = 'sensory'
-                    else:
-                        self.prefix_to_type[prefix] = 'inter'
-            
-            print(f"Updated cell classes from {nml_dir}: {len(self.all_neuron_types)} cell types in {len(self.cell_classes)} groups")
-            return True
-            
-        except Exception as e:
-            print(f"Error updating cell classes from directory: {e}")
-            return False
-    
-    def update_synapse_types_from_directory(self, nml_dir):
-        """
-        Update synapse types by scanning a directory of NeuroML files
-        
-        Args:
-            nml_dir (str): Path to directory containing NeuroML files
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        try:
-            # Scan for synapse files
-            synapse_files = []
-            for filename in os.listdir(nml_dir):
-                if filename.endswith('.synapse.nml') or filename == 'Generic_GJ.nml':
-                    synapse_files.append(filename)
-            
-            if not synapse_files:
-                print(f"No synapse files found in {nml_dir}")
-                return False
-            
-            # Map synapse files to types
-            synapse_map = {}
-            
-            for filename in synapse_files:
-                base_name = filename.split('.')[0]
+            # For incoming connections (somatic -> pharyngeal)
+            elif direction == "incoming":
+                # Create projection ID
+                proj_id = f"NC_{somatic_neuron}_{pharyngeal_neuron}"
                 
-                # Categorize by names
-                if 'Generic_GJ' in filename:
-                    synapse_map['gap_junction'] = base_name
-                elif 'Acetylcholine' in base_name:
-                    if 'Tyramine' in base_name:
-                        # Special case for mixed synapse
-                        synapse_map['modulatory'] = base_name
-                    else:
-                        synapse_map['excitatory'] = base_name
-                elif 'Glutamate' in base_name:
-                    synapse_map['inhibitory'] = base_name
-                elif 'Serotonin' in base_name:
-                    if 'Glutamate' in base_name or 'Acetylcholine' in base_name:
-                        synapse_map['modulatory'] = base_name
-                    else:
-                        synapse_map['modulatory'] = base_name
-                elif any(mod in base_name for mod in ['Dopamine', 'GABA', 'FMRFamide', 'Octapamine']):
-                    synapse_map['modulatory'] = base_name
-            
-            # Update synapse types
-            for synapse_type, synapse_name in synapse_map.items():
-                self.synapse_types[synapse_type] = synapse_name
-            
-            print(f"Updated synapse types from {nml_dir}: {self.synapse_types}")
-            return True
-            
-        except Exception as e:
-            print(f"Error updating synapse types from directory: {e}")
-            return False
-    
-    def initialize_from_directory(self, nml_dir):
-        """
-        Initialize cell classes and synapse types from a NeuroML directory
-        
-        Args:
-            nml_dir (str): Path to directory containing NeuroML files
-            
-        Returns:
-            bool: True if successful, False otherwise
-        """
-        success1 = self.update_cell_classes_from_directory(nml_dir)
-        success2 = self.update_synapse_types_from_directory(nml_dir)
-        
-        return success1 and success2
-
-    def load_external_connections(self, external_connections_file=None):
-        """
-        Load external connections data from a file or use defaults based on C. elegans connectivity.
-        
-        Args:
-            external_connections_file (str, optional): Path to JSON file with external connections
+                # Check if projection already exists
+                existing_proj = network.find(f".//projection[@id='{proj_id}']")
+                if existing_proj is None:
+                    # Create new projection
+                    proj = etree.SubElement(
+                        network,
+                        "projection",
+                        id=proj_id,
+                        presynapticPopulation=somatic_neuron,
+                        postsynapticPopulation=pharyngeal_neuron,
+                        synapse=synapse_type
+                    )
+                else:
+                    proj = existing_proj
                 
-        Returns:
-            list: List of external connection definitions
-        """
-        if external_connections_file and os.path.exists(external_connections_file):
-            try:
-                with open(external_connections_file, 'r') as f:
-                    return json.load(f)
-            except Exception as e:
-                print(f"Error loading external connections file: {e}")
-        
-        # Default external connections based on C. elegans neuroanatomy
-        # These connect the pharyngeal nervous system to the somatic nervous system
-        # through the RIP neurons and the pharyngeal-somatic gap junctions
-        default_connections = [
-            # RIP connections - these neurons connect pharyngeal and somatic nervous systems
-            {
-                "source": "I1L", 
-                "target": "RIPL", 
-                "synapse_type": "Acetylcholine",
-                "is_gap_junction": False
-            },
-            {
-                "source": "I1R", 
-                "target": "RIPR", 
-                "synapse_type": "Acetylcholine",
-                "is_gap_junction": False
-            },
-            # M1 forms connections with the nerve ring
-            {
-                "source": "M1", 
-                "target": "RIPL", 
-                "synapse_type": "Glutamate",
-                "is_gap_junction": False
-            },
-            # Gap junctions between pharyngeal and somatic systems
-            {
-                "source": "I1L", 
-                "target": "RIPL", 
-                "is_gap_junction": True
-            },
-            {
-                "source": "I1R", 
-                "target": "RIPR", 
-                "is_gap_junction": True
-            },
-            # NSM neurons connect to amphid neurons
-            {
-                "source": "NSML", 
-                "target": "AWBL", 
-                "synapse_type": "Serotonin_Glutamate",
-                "is_gap_junction": False
-            },
-            {
-                "source": "NSMR", 
-                "target": "AWBR", 
-                "synapse_type": "Serotonin_Glutamate",
-                "is_gap_junction": False
-            }
-        ]
-        
-        return default_connections
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "connection",
+                    id=str(projection_counter),
+                    preCellId=f"../{somatic_neuron}/0/{somatic_neuron}",
+                    postCellId=f"../{pharyngeal_neuron}/0/{pharyngeal_neuron}"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegmentId"] = str(pre_segment)
+                conn.attrib["postSegmentId"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
+                
+                projection_counter += 1
