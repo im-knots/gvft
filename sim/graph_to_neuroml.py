@@ -414,6 +414,25 @@ class GraphToNeuroML:
     
     def create_neuroml_document(self, network_id="EvolvedNetwork"):
         """Create a basic NeuroML2 document with standard headers."""
+        # Sanitize the network_id to conform to NmlId pattern [a-zA-Z_][a-zA-Z0-9_]*
+        sanitized_id = network_id
+        # Remove file extension if present
+        if sanitized_id.endswith('.net.nml'):
+            sanitized_id = sanitized_id[:-8]
+        elif sanitized_id.endswith('.nml'):
+            sanitized_id = sanitized_id[:-4]
+        
+        # Replace invalid characters with underscores
+        sanitized_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in sanitized_id)
+        
+        # Ensure it starts with a letter or underscore
+        if sanitized_id and not (sanitized_id[0].isalpha() or sanitized_id[0] == '_'):
+            sanitized_id = 'gvft_' + sanitized_id
+        
+        # If empty after sanitization, use a default
+        if not sanitized_id:
+            sanitized_id = "gvft_network"
+        
         # Create the root element with appropriate namespaces
         neuroml = etree.Element(
             "neuroml",
@@ -424,7 +443,7 @@ class GraphToNeuroML:
             attrib={
                 "{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": 
                     "http://www.neuroml.org/schema/neuroml2 https://raw.githubusercontent.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd",
-                "id": network_id
+                "id": sanitized_id
             }
         )
         
@@ -481,10 +500,22 @@ class GraphToNeuroML:
                 etree.SubElement(neuroml_doc, "include", href=f"{synapse_type}.synapse.nml")
             
             # Create network container
+            # Sanitize the ID first
+            sanitized_id = network_id
+            if sanitized_id.endswith('.net.nml'):
+                sanitized_id = sanitized_id[:-8]
+            elif sanitized_id.endswith('.nml'):
+                sanitized_id = sanitized_id[:-4]
+            sanitized_id = ''.join(c if c.isalnum() or c == '_' else '_' for c in sanitized_id)
+            if sanitized_id and not (sanitized_id[0].isalpha() or sanitized_id[0] == '_'):
+                sanitized_id = 'gvft_' + sanitized_id
+            if not sanitized_id:
+                sanitized_id = "gvft_network"
+                
             network = etree.SubElement(
                 neuroml_doc,
                 "network",
-                id=f"{network_id}",
+                id=sanitized_id,
                 type="networkWithTemperature",
                 temperature="20.0 degC"
             )
@@ -570,11 +601,184 @@ class GraphToNeuroML:
                         z="0.0"
                     )
             
-            # Create internal pharyngeal projections
-            self._create_internal_projections(network, synapse_props, node_types, population_nodes)
+            # --- IMPORTANT CHANGE: Reorder projections to follow NeuroML schema ---
             
-            # Create somatic-pharyngeal interface connections
-            self._create_interface_connections(network, node_types, population_nodes)
+            # First collect all projections by type to ensure proper ordering
+            electrical_projections = []  # For electricalProjection elements
+            chemical_projections = []  # For projection elements
+            
+            # Process internal connections and separate by type
+            for conn_id, props in synapse_props.items():
+                source_node = props['source']
+                target_node = props['target']
+                
+                # Get source and target cell classes
+                source_class = node_types[source_node]['cell_class']
+                target_class = node_types[target_node]['cell_class']
+                
+                # Get indices within their respective populations
+                source_idx = population_nodes[source_class].index(source_node)
+                target_idx = population_nodes[target_class].index(target_node)
+                
+                synapse_type = props['synapse_type']
+                is_gap_junction = props['is_gap_junction']
+                
+                if is_gap_junction:
+                    electrical_projections.append({
+                        'source_class': source_class,
+                        'target_class': target_class,
+                        'source_idx': source_idx,
+                        'target_idx': target_idx,
+                        'weight': props['weight'],
+                        'delay': props['delay']
+                    })
+                else:
+                    chemical_projections.append({
+                        'source_class': source_class,
+                        'target_class': target_class,
+                        'source_idx': source_idx,
+                        'target_idx': target_idx,
+                        'weight': props['weight'],
+                        'delay': props['delay'],
+                        'synapse_type': synapse_type
+                    })
+            
+            # Process somatic interface connections (all chemical)
+            for pharyngeal_neuron, somatic_neuron, direction, synapse_type in self.somatic_connections:
+                # Check if the pharyngeal neuron exists
+                pharyngeal_found = False
+                for cell_class in population_nodes.keys():
+                    if cell_class == pharyngeal_neuron:
+                        pharyngeal_found = True
+                        break
+                
+                if not pharyngeal_found:
+                    continue
+                    
+                # Add to chemical_projections with appropriate source/target
+                if direction == "outgoing":  # pharyngeal -> somatic
+                    chemical_projections.append({
+                        'source_class': pharyngeal_neuron,
+                        'target_class': somatic_neuron,
+                        'source_idx': 0,
+                        'target_idx': 0,
+                        'synapse_type': synapse_type,
+                        'is_interface': True
+                    })
+                else:  # incoming: somatic -> pharyngeal
+                    chemical_projections.append({
+                        'source_class': somatic_neuron,
+                        'target_class': pharyngeal_neuron,
+                        'source_idx': 0,
+                        'target_idx': 0,
+                        'synapse_type': synapse_type,
+                        'is_interface': True
+                    })
+            
+            # Now add electrical projections FIRST, followed by chemical projections
+            # 1. Add electrical projections (gap junctions)
+            projection_counter = 0
+            electrical_proj_map = {}  # To track existing projections
+            
+            for proj_data in electrical_projections:
+                source_class = proj_data['source_class']
+                target_class = proj_data['target_class']
+                source_idx = proj_data['source_idx']
+                target_idx = proj_data['target_idx']
+                
+                # Create projection ID
+                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
+                
+                # Check if we've already created this projection
+                if proj_id not in electrical_proj_map:
+                    # Create new electrical projection
+                    proj = etree.SubElement(
+                        network,
+                        "electricalProjection",
+                        id=proj_id,
+                        presynapticPopulation=source_class,
+                        postsynapticPopulation=target_class
+                    )
+                    electrical_proj_map[proj_id] = proj
+                else:
+                    proj = electrical_proj_map[proj_id]
+                
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "electricalConnection",
+                    id=str(projection_counter),
+                    preCell=str(source_idx),
+                    postCell=str(target_idx),
+                    synapse="Generic_GJ"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegment"] = str(pre_segment)
+                conn.attrib["postSegment"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
+                
+                projection_counter += 1
+            
+            # 2. Add chemical projections AFTER electrical projections
+            chemical_proj_map = {}  # To track existing projections
+            
+            for proj_data in chemical_projections:
+                source_class = proj_data['source_class']
+                target_class = proj_data['target_class']
+                source_idx = proj_data['source_idx']
+                target_idx = proj_data['target_idx']
+                synapse_type = proj_data['synapse_type']
+                is_interface = proj_data.get('is_interface', False)
+                
+                # Create different projection IDs for interface vs internal
+                if is_interface:
+                    proj_id = f"NC_{source_class}_{target_class}"
+                else:
+                    proj_id = f"NCXLS_{source_class}_{target_class}"
+                
+                # Check if we've already created this projection
+                if proj_id not in chemical_proj_map:
+                    # Create new projection
+                    proj = etree.SubElement(
+                        network,
+                        "projection",
+                        id=proj_id,
+                        presynapticPopulation=source_class,
+                        postsynapticPopulation=target_class,
+                        synapse=synapse_type
+                    )
+                    chemical_proj_map[proj_id] = proj
+                else:
+                    proj = chemical_proj_map[proj_id]
+                
+                # Add connection
+                conn = etree.SubElement(
+                    proj,
+                    "connection",
+                    id=str(projection_counter),
+                    preCellId=f"../{source_class}/{source_idx}/{source_class}",
+                    postCellId=f"../{target_class}/{target_idx}/{target_class}"
+                )
+                
+                # Add synaptic location parameters
+                pre_segment = np.random.randint(1, 10)
+                post_segment = np.random.randint(1, 10)
+                pre_frac = np.random.random()
+                post_frac = np.random.random()
+                
+                conn.attrib["preSegmentId"] = str(pre_segment)
+                conn.attrib["postSegmentId"] = str(post_segment)
+                conn.attrib["preFractionAlong"] = str(pre_frac)
+                conn.attrib["postFractionAlong"] = str(post_frac)
+                
+                projection_counter += 1
             
             # Write to file
             tree = etree.ElementTree(neuroml_doc)
