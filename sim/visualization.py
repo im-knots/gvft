@@ -161,7 +161,7 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
             try:
                 # Define NeuroML output filename
                 bio_tag = "bio_prior_" if bio_prior else ""
-                neuroml_filename = f"gvft_network_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.nml"
+                neuroml_filename = f"gvft_network_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.net.nml"
                 neuroml_path = os.path.join(neuroml_output_dir, neuroml_filename)
                 
                 # Generate cell type assignments
