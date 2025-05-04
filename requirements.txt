@@ -7,3 +7,4 @@ nvidia-ml-py3
 lxml
 networkx
 pyneuroml
+pyneuroml[neuron]

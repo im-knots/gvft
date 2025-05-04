@@ -14,7 +14,7 @@ python3 main.py --neuroml-file ../organicNeuroML2/PharyngealNetwork.net.nml
 pynml -validate ../organicNeuroML2/gvft_network_bio_prior_lamW_0.144_DF_0.013_t20.net.nml
 
 # Network analysis
-python -m pyneuroml.analysis.network_analyzer ../figures/neuroml/gvft_network_bio_prior_lamW_0.144_DF_0.013_t70.net.nml -nc
+python -m pyneuroml.analysis.network_analyzer ../organicNeuroML2/gvft_network_bio_prior_lamW_0.144_DF_0.013_t20.net.nml -nc
 
 # Create a LEMS simulation file
 pynml-modchan -nml ../figures/neuroml/gvft_network_fixed.net.nml -lems

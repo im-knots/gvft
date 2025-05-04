@@ -6,6 +6,7 @@ from collections import Counter
 import xml.etree.ElementTree as ET
 import datetime
 from lxml import etree
+from pyneuroml.lems import LEMSSimulation
 
 class GraphToNeuroML:
     """
@@ -458,6 +459,72 @@ class GraphToNeuroML:
             etree.SubElement(neuroml, "include", href=f"{neuron}.cell.nml")
         
         return neuroml
+
+    def generate_lems_file(self, neuroml_file_path, duration=500, dt=0.025):
+        """
+        Generate a LEMS simulation file for the exported NeuroML network.
+        
+        Args:
+            neuroml_file_path (str): Path to the NeuroML file
+            duration (float): Simulation duration in ms
+            dt (float): Simulation time step in ms
+            
+        Returns:
+            str: Path to the generated LEMS file
+        """
+        try:
+            # Extract base name and directory
+            neuroml_dir = os.path.dirname(neuroml_file_path)
+            neuroml_filename = os.path.basename(neuroml_file_path)
+            base_name = neuroml_filename.split('.')[0]
+            simulation_id = f"Sim_{base_name}"
+            
+            # Get the network id from the NeuroML file
+            # This is typically the same as the base name but without any special characters
+            network_id = base_name.replace('.', '_')
+            
+            # Create the LEMS simulation
+            ls = LEMSSimulation(simulation_id, duration, dt, network_id)
+            
+            # Include the network file (using relative path)
+            ls.include_neuroml2_file(neuroml_filename)
+            
+            # Create a basic display for voltages
+            ls.create_display("display_voltages", "Membrane potentials", "-80", "40")
+            
+            # Add a subset of neurons to the display
+            # Find available populations
+            populations = []
+            for prefix in ["M", "I", "MC", "NSM"]:
+                for cell_class in self.cell_classes.get(prefix, []):
+                    populations.append(cell_class)
+            
+            # Choose up to 5 populations to monitor
+            display_populations = populations[:min(5, len(populations))]
+            for i, pop in enumerate(display_populations):
+                # Create a color based on the index
+                color_r = hex(((i * 50) % 256)).replace("0x", "").zfill(2)
+                color_g = hex(((i * 100) % 256)).replace("0x", "").zfill(2)
+                color_b = hex(((i * 150) % 256)).replace("0x", "").zfill(2)
+                color = f"#{color_r}{color_g}{color_b}"
+                
+                ls.add_line_to_display("display_voltages", f"{pop}_v", f"{pop}/0/v", "1mV", color)
+            
+            # Create output file for data
+            ls.create_output_file("output_voltages", f"{base_name}_voltages.dat")
+            for pop in display_populations:
+                ls.add_column_to_output_file("output_voltages", f"{pop}_v", f"{pop}/0/v")
+            
+            # Save to file
+            lems_file = os.path.join(neuroml_dir, f"LEMS_{simulation_id}.xml")
+            ls.save_to_file(lems_file)
+            
+            print(f"Successfully created LEMS simulation file: {lems_file}")
+            return lems_file
+            
+        except Exception as e:
+            print(f"Error creating LEMS simulation file: {e}")
+            return None
     
     def export_to_neuroml(self, G, output_path, node_types=None):
         """
@@ -789,6 +856,8 @@ class GraphToNeuroML:
             tree.write(output_path, pretty_print=True, xml_declaration=True, encoding="UTF-8")
             
             print(f"Successfully exported to {output_path}")
+            self.generate_lems_file(output_path)
+
             return True
             
         except Exception as e:
