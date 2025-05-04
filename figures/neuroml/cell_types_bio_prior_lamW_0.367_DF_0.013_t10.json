@@ -5,94 +5,93 @@
       "cell_class": "I1L"
     },
     "1": {
-      "basic_type": "sensory",
-      "cell_class": "I1L"
-    },
-    "2": {
-      "basic_type": "sensory",
-      "cell_class": "I1L"
-    },
-    "3": {
       "basic_type": "motor",
       "cell_class": "M1"
     },
-    "4": {
+    "10": {
       "basic_type": "motor",
-      "cell_class": "M2L"
+      "cell_class": "M1"
     },
-    "8": {
+    "12": {
       "basic_type": "inter",
       "cell_class": "NSML"
     },
-    "9": {
+    "17": {
       "basic_type": "motor",
-      "cell_class": "M2R"
+      "cell_class": "M1"
     },
-    "11": {
-      "basic_type": "sensory",
-      "cell_class": "I1L"
-    },
-    "12": {
-      "basic_type": "motor",
-      "cell_class": "M3L"
-    },
-    "13": {
-      "basic_type": "sensory",
-      "cell_class": "I1L"
-    },
-    "14": {
+    "2": {
       "basic_type": "inter",
       "cell_class": "NSMR"
     },
-    "17": {
-      "basic_type": "sensory",
-      "cell_class": "I1L"
-    },
-    "19": {
-      "basic_type": "motor",
-      "cell_class": "M3R"
-    },
-    "5": {
-      "basic_type": "inter",
-      "cell_class": "NSML"
-    },
-    "6": {
-      "basic_type": "inter",
-      "cell_class": "NSML"
-    },
-    "7": {
-      "basic_type": "motor",
-      "cell_class": "MI"
-    },
-    "10": {
-      "basic_type": "motor",
-      "cell_class": "MI"
-    },
-    "15": {
+    "3": {
       "basic_type": "sensory",
       "cell_class": "I1R"
     },
+    "4": {
+      "basic_type": "sensory",
+      "cell_class": "I1R"
+    },
+    "5": {
+      "basic_type": "sensory",
+      "cell_class": "I1R"
+    },
+    "6": {
+      "basic_type": "motor",
+      "cell_class": "M2L"
+    },
+    "7": {
+      "basic_type": "motor",
+      "cell_class": "M2R"
+    },
+    "9": {
+      "basic_type": "inter",
+      "cell_class": "NSML"
+    },
+    "15": {
+      "basic_type": "motor",
+      "cell_class": "M3L"
+    },
     "16": {
+      "basic_type": "inter",
+      "cell_class": "NSMR"
+    },
+    "19": {
+      "basic_type": "sensory",
+      "cell_class": "I1R"
+    },
+    "8": {
       "basic_type": "sensory",
       "cell_class": "I2L"
     },
-    "18": {
+    "11": {
       "basic_type": "inter",
       "cell_class": "NSML"
+    },
+    "13": {
+      "basic_type": "sensory",
+      "cell_class": "I2L"
+    },
+    "14": {
+      "basic_type": "motor",
+      "cell_class": "M3R"
+    },
+    "18": {
+      "basic_type": "sensory",
+      "cell_class": "I2L"
     }
   },
   "cell_class_distribution": {
-    "I1L": 0.3,
-    "M1": 0.05,
+    "I1L": 0.05,
+    "M1": 0.15,
+    "NSML": 0.15,
+    "NSMR": 0.1,
+    "I1R": 0.2,
     "M2L": 0.05,
-    "NSML": 0.2,
     "M2R": 0.05,
     "M3L": 0.05,
-    "NSMR": 0.05,
-    "M3R": 0.05,
-    "MI": 0.1,
-    "I1R": 0.05,
-    "I2L": 0.05
+    "I2L": 0.15,
+    "M3R": 0.05
   },
   "basic_type_distribution": {
     "motor": 0.35,

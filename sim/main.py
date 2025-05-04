@@ -333,13 +333,13 @@ def main():
                     config.num_modules = neuron_count
                     
                     # Adjust top-k connections based on average connectivity
-                    if connections and neuron_count > 0:
-                        avg_connections_per_neuron = len(connections) / neuron_count
-                        # Set top_k to be slightly higher than the average to ensure we don't lose connectivity
-                        config.top_k = max(config.top_k, int(avg_connections_per_neuron * 1.5))
+                    # if connections and neuron_count > 0:
+                    #     avg_connections_per_neuron = len(connections) / neuron_count
+                    #     # Set top_k to be slightly higher than the average to ensure we don't lose connectivity
+                    #     config.top_k = max(config.top_k, int(avg_connections_per_neuron * 1.5))
                         
-                        # Cap top_k to a reasonable maximum to avoid excessive connections
-                        config.top_k = min(config.top_k, 20)
+                    #     # Cap top_k to a reasonable maximum to avoid excessive connections
+                    #     config.top_k = min(config.top_k, 20)
                     
                     print(f"Updated configuration to match NeuroML complexity:")
                     print(f"  Number of modules (neurons): {config.num_modules}")

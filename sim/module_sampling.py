@@ -51,6 +51,83 @@ def build_connectivity_graph(module_coords, Fx, Fy, W, domain, config):
     x, y = domain['x'], domain['y']
     cos_threshold = config.cos_threshold
     lambda_val = config.lambda_val
+    top_k = config.top_k
+    
+    # Print connectivity parameters
+    print(f"Building connectivity graph with parameters:")
+    print(f"  Modules: {num_modules}")
+    print(f"  Top-k connections: {top_k}")
+    print(f"  Cosine threshold: {cos_threshold}")
+    print(f"  Lambda value: {lambda_val}")
+    
+    # Count connections for analysis
+    total_connections = 0
+    total_module_connections = []
+    
+    for i in range(num_modules):
+        # Find closest grid points to module positions
+        xi_idx = torch.argmin(torch.abs(x - module_coords[i, 0]))
+        yi_idx = torch.argmin(torch.abs(y - module_coords[i, 1]))
+        
+        # Get field values at module position
+        F_i = torch.tensor([Fx[yi_idx, xi_idx], Fy[yi_idx, xi_idx]], device=device)
+        W_i = W[yi_idx, xi_idx]
+        
+        # Calculate potential connections
+        candidate_edges = []
+        for j in range(num_modules):
+            if i == j: 
+                continue
+            
+            r_i = module_coords[i]
+            r_j = module_coords[j]
+            delta = r_j - r_i
+            norm_delta = torch.norm(delta)
+            norm_F = torch.norm(F_i)
+            
+            if norm_delta < 1e-6 or norm_F < 1e-6: 
+                continue
+            
+            cos_sim = torch.dot(delta, F_i) / (norm_delta * norm_F)
+            cos_sim = torch.nan_to_num(torch.clamp(cos_sim, -1.0, 1.0))
+            
+            # Adaptive threshold if not enough candidate edges
+            adaptive_threshold = cos_threshold
+            if len(candidate_edges) < top_k / 2:
+                adaptive_threshold = cos_threshold * 0.7
+                
+            if cos_sim < adaptive_threshold: 
+                continue
+            
+            rho = cos_sim * W_i
+            w_ij = torch.clamp(rho / lambda_val, 0, 1.0)
+            candidate_edges.append((j, w_ij.item()))
+        
+        # Sort and keep top-k edges, if available
+        if candidate_edges:
+            candidate_edges = sorted(candidate_edges, key=lambda item: item[1], reverse=True)
+            for j, w_ij in candidate_edges[:min(top_k, len(candidate_edges))]:
+                weights[i, j] = w_ij
+                total_connections += 1
+        
+        total_module_connections.append(len(candidate_edges[:min(top_k, len(candidate_edges))]))
+    
+    # Report connectivity statistics
+    avg_connections = total_connections / num_modules if num_modules > 0 else 0
+    print(f"Connectivity statistics:")
+    print(f"  Total connections: {total_connections}")
+    print(f"  Average connections per module: {avg_connections:.2f}")
+    print(f"  Connection density: {total_connections/(num_modules*(num_modules-1)):.3f} (ratio of actual to possible connections)")
+    
+    return weights
+    """Build connectivity graph between modules based on flow field alignment."""
+    num_modules = module_coords.shape[0]
+    device = Fx.device
+    weights = torch.zeros((num_modules, num_modules), device=device)
+    
+    x, y = domain['x'], domain['y']
+    cos_threshold = config.cos_threshold
+    lambda_val = config.lambda_val
     top_k = min(config.top_k, num_modules - 1)  # Ensure top_k doesn't exceed available modules
     
     for i in range(num_modules):

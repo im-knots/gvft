@@ -325,6 +325,14 @@ class GraphToNeuroML:
         """
         edge_props = {}
         
+        # Count the different connection types for reporting
+        connection_counts = {
+            'excitatory': 0,
+            'inhibitory': 0,
+            'modulatory': 0,
+            'gap_junction': 0
+        }
+        
         # For each edge in the graph
         for source, target, data in G.edges(data=True):
             # Get cell types of source and target
@@ -358,20 +366,20 @@ class GraphToNeuroML:
                 else:
                     # Sensory to others can be either
                     connection_type = np.random.choice(['excitatory', 'inhibitory'], 
-                                                     p=[0.7, 0.3])
+                                                    p=[0.7, 0.3])
             elif source_type == 'inter':
                 # Interneurons make both types, with a bias
                 if source_class.startswith('MC'):
                     connection_type = 'excitatory'  # MC cells are excitatory
                 else:
                     connection_type = np.random.choice(['excitatory', 'inhibitory', 'modulatory'], 
-                                                     p=[0.5, 0.3, 0.2])
+                                                    p=[0.5, 0.3, 0.2])
             
             # Determine synapse type based on connection type
             synapse_type = self.synapse_types.get(connection_type, 'Acetylcholine')
             
             # Decide if this is a gap junction (electrical synapse)
-            # In pharyngeal system, these are often between same-type cells or symmetrical pairs
+            # IMPORTANT: Increase probability of gap junctions
             is_gap_junction = False
             if (source_type == target_type or 
                 (source_class.endswith('L') and target_class.endswith('R') and 
@@ -379,12 +387,20 @@ class GraphToNeuroML:
                 (source_class.endswith('R') and target_class.endswith('L') and 
                 source_class[:-1] == target_class[:-1])):
                 # Symmetrically positioned cells often have gap junctions
-                # With a certain probability
-                is_gap_junction = np.random.random() < 0.3
+                # Increase probability from 0.3 to 0.5
+                is_gap_junction = np.random.random() < 0.5
+            
+            # Additional rule: Some specific cell classes are known to form gap junctions
+            if ('M' in source_class and 'M' in target_class) or ('MC' in source_class and 'MC' in target_class):
+                # Motor neurons and marginal cells often form gap junctions with their class
+                is_gap_junction = np.random.random() < 0.6
             
             # If it's a gap junction, override synapse type
             if is_gap_junction:
                 synapse_type = self.synapse_types['gap_junction']
+                connection_counts['gap_junction'] += 1
+            else:
+                connection_counts[connection_type] += 1
             
             # Calculate delay based on connection weight
             # lower weights get higher delays
@@ -399,10 +415,16 @@ class GraphToNeuroML:
                 'weight': weight,
                 'delay': delay,
                 'synapse_type': synapse_type,
-                'is_gap_junction': is_gap_junction,
-                'excitatory': not is_gap_junction and synapse_type != 'Glutamate'
+                'is_gap_junction': is_gap_junction
             }
-            
+        
+        # Print statistics
+        print(f"Connection type distribution:")
+        print(f"  Excitatory: {connection_counts['excitatory']}")
+        print(f"  Inhibitory: {connection_counts['inhibitory']}")
+        print(f"  Modulatory: {connection_counts['modulatory']}")
+        print(f"  Gap Junctions: {connection_counts['gap_junction']}")
+        
         return edge_props
     
     def create_neuroml_document(self, network_id="EvolvedNetwork"):
@@ -612,10 +634,6 @@ class GraphToNeuroML:
                 source_node = props['source']
                 target_node = props['target']
                 
-                # Skip if either node not found
-                if source_node not in node_types or target_node not in node_types:
-                    continue
-                
                 # Get source and target cell classes
                 source_class = node_types[source_node]['cell_class']
                 target_class = node_types[target_node]['cell_class']
@@ -624,17 +642,23 @@ class GraphToNeuroML:
                 source_idx = population_nodes[source_class].index(source_node)
                 target_idx = population_nodes[target_class].index(target_node)
                 
+                # Creating projection ID following the conventions in PharyngealNetwork.net.nml
+                # Format: NCXLS_<SOURCE>_<TARGET> for chemical synapses
+                # Format: NCXLS_<SOURCE>_<TARGET>_GJ for gap junctions
                 synapse_type = props['synapse_type']
                 is_gap_junction = props['is_gap_junction']
                 
                 if is_gap_junction:
-                    # Create projection ID for electrical connection
                     proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
                     
-                    # Get or create projection
-                    if (source_class, target_class) in electrical_projections:
-                        proj = electrical_projections[(source_class, target_class)]
-                    else:
+                    # Check if projection already exists
+                    existing_proj = None
+                    for ep in network.xpath(f".//electricalProjection"):
+                        if ep.get("id") == proj_id:
+                            existing_proj = ep
+                            break
+                            
+                    if existing_proj is None:
                         # Create new electrical projection
                         proj = etree.SubElement(
                             network,
@@ -643,7 +667,8 @@ class GraphToNeuroML:
                             presynapticPopulation=source_class,
                             postsynapticPopulation=target_class
                         )
-                        electrical_projections[(source_class, target_class)] = proj
+                    else:
+                        proj = existing_proj
                     
                     # Add connection
                     conn = etree.SubElement(
@@ -655,25 +680,29 @@ class GraphToNeuroML:
                         synapse="Generic_GJ"
                     )
                     
-                    # Add synaptic location parameters - random but deterministic segments
-                    pre_segment = abs(hash(f"pre_{source_class}_{source_idx}")) % 10 + 1
-                    post_segment = abs(hash(f"post_{target_class}_{target_idx}")) % 10 + 1
-                    pre_frac = (hash(f"prefrac_{source_class}_{source_idx}") % 1000) / 1000.0
-                    post_frac = (hash(f"postfrac_{target_class}_{target_idx}") % 1000) / 1000.0
+                    # Add synaptic location parameters
+                    pre_segment = np.random.randint(1, 9)
+                    post_segment = np.random.randint(1, 9)
+                    pre_frac = np.random.random()
+                    post_frac = np.random.random()
                     
-                    conn.attrib["preSegment"] = str(pre_segment)
-                    conn.attrib["postSegment"] = str(post_segment)
-                    conn.attrib["preFractionAlong"] = str(pre_frac)
-                    conn.attrib["postFractionAlong"] = str(post_frac)
+                    conn.set("preSegment", str(pre_segment))
+                    conn.set("postSegment", str(post_segment))
+                    conn.set("preFractionAlong", str(pre_frac))
+                    conn.set("postFractionAlong", str(post_frac))
                     
                 else:
-                    # Chemical synapse - create projection ID
+                    # Chemical synapse
                     proj_id = f"NCXLS_{source_class}_{target_class}"
                     
-                    # Get or create projection
-                    if (source_class, target_class, synapse_type) in chemical_projections:
-                        proj = chemical_projections[(source_class, target_class, synapse_type)]
-                    else:
+                    # Check if projection already exists
+                    existing_proj = None
+                    for ep in network.xpath(f".//projection"):
+                        if ep.get("id") == proj_id:
+                            existing_proj = ep
+                            break
+                            
+                    if existing_proj is None:
                         # Create new projection
                         proj = etree.SubElement(
                             network,
@@ -683,7 +712,8 @@ class GraphToNeuroML:
                             postsynapticPopulation=target_class,
                             synapse=synapse_type
                         )
-                        chemical_projections[(source_class, target_class, synapse_type)] = proj
+                    else:
+                        proj = existing_proj
                     
                     # Add connection
                     conn = etree.SubElement(
@@ -694,19 +724,19 @@ class GraphToNeuroML:
                         postCellId=f"../{target_class}/{target_idx}/{target_class}"
                     )
                     
-                    # Add synaptic location parameters - random but deterministic segments
-                    pre_segment = abs(hash(f"pre_{source_class}_{source_idx}")) % 10 + 1
-                    post_segment = abs(hash(f"post_{target_class}_{target_idx}")) % 10 + 1
-                    pre_frac = (hash(f"prefrac_{source_class}_{source_idx}") % 1000) / 1000.0
-                    post_frac = (hash(f"postfrac_{target_class}_{target_idx}") % 1000) / 1000.0
+                    # Add synaptic location parameters
+                    pre_segment = np.random.randint(1, 9)
+                    post_segment = np.random.randint(1, 9)
+                    pre_frac = np.random.random()
+                    post_frac = np.random.random()
                     
-                    conn.attrib["preSegmentId"] = str(pre_segment)
-                    conn.attrib["postSegmentId"] = str(post_segment)
-                    conn.attrib["preFractionAlong"] = str(pre_frac)
-                    conn.attrib["postFractionAlong"] = str(post_frac)
+                    conn.set("preSegmentId", str(pre_segment))
+                    conn.set("postSegmentId", str(post_segment))
+                    conn.set("preFractionAlong", str(pre_frac))
+                    conn.set("postFractionAlong", str(post_frac))
                 
                 projection_counter += 1
-            
+                        
             # Write to file
             tree = etree.ElementTree(neuroml_doc)
             tree.write(output_path, pretty_print=True, xml_declaration=True, encoding="UTF-8")

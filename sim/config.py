@@ -12,9 +12,9 @@ BASE_DT = 0.1
 
 # Default module parameters
 DEFAULT_NUM_MODULES = 20
-DEFAULT_TOP_K = 5
-DEFAULT_COS_THRESHOLD = 0.2
-DEFAULT_LAMBDA_VAL = 0.2
+DEFAULT_TOP_K = 50
+DEFAULT_COS_THRESHOLD = 0.08
+DEFAULT_LAMBDA_VAL = 0.10
 
 # --- GVFT Field Parameters (Base values) ---
 # These will be scaled according to grid resolution

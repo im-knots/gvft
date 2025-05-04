@@ -1,0 +1,102 @@
+{
+  "node_types": {
+    "0": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "2": {
+      "basic_type": "sensory",
+      "cell_class": "I1L"
+    },
+    "3": {
+      "basic_type": "sensory",
+      "cell_class": "I1R"
+    },
+    "4": {
+      "basic_type": "inter",
+      "cell_class": "NSML"
+    },
+    "6": {
+      "basic_type": "sensory",
+      "cell_class": "I2L"
+    },
+    "8": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "10": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "11": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "13": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "14": {
+      "basic_type": "inter",
+      "cell_class": "NSMR"
+    },
+    "16": {
+      "basic_type": "sensory",
+      "cell_class": "I2R"
+    },
+    "17": {
+      "basic_type": "sensory",
+      "cell_class": "I3"
+    },
+    "18": {
+      "basic_type": "inter",
+      "cell_class": "NSML"
+    },
+    "1": {
+      "basic_type": "inter",
+      "cell_class": "NSMR"
+    },
+    "5": {
+      "basic_type": "inter",
+      "cell_class": "NSML"
+    },
+    "7": {
+      "basic_type": "sensory",
+      "cell_class": "I4"
+    },
+    "9": {
+      "basic_type": "sensory",
+      "cell_class": "I4"
+    },
+    "12": {
+      "basic_type": "motor",
+      "cell_class": "M2L"
+    },
+    "15": {
+      "basic_type": "sensory",
+      "cell_class": "I4"
+    },
+    "19": {
+      "basic_type": "motor",
+      "cell_class": "M2R"
+    }
+  },
+  "cell_class_distribution": {
+    "M1": 0.25,
+    "I1L": 0.05,
+    "I1R": 0.05,
+    "NSML": 0.15,
+    "I2L": 0.05,
+    "NSMR": 0.1,
+    "I2R": 0.05,
+    "I3": 0.05,
+    "I4": 0.15,
+    "M2L": 0.05,
+    "M2R": 0.05
+  },
+  "basic_type_distribution": {
+    "motor": 0.35,
+    "sensory": 0.4,
+    "inter": 0.25
+  }
+}
