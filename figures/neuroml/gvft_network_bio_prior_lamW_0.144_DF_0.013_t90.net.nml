@@ -1,0 +1,341 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.githubusercontent.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd" id="gvft_network_bio_prior_lamW_0.144_DF_0.013_t90.net">
+  <notes>NeuroML2 network generated from GVFT simulation on 2025-05-04 00:12:42
+</notes>
+  <include href="M3R.cell.nml"/>
+  <include href="M1.cell.nml"/>
+  <include href="I2L.cell.nml"/>
+  <include href="MCL.cell.nml"/>
+  <include href="I6.cell.nml"/>
+  <include href="I5.cell.nml"/>
+  <include href="M4.cell.nml"/>
+  <include href="I1R.cell.nml"/>
+  <include href="MCR.cell.nml"/>
+  <include href="I3.cell.nml"/>
+  <include href="M3L.cell.nml"/>
+  <include href="NSML.cell.nml"/>
+  <include href="M2L.cell.nml"/>
+  <include href="M5.cell.nml"/>
+  <include href="I4.cell.nml"/>
+  <include href="MI.cell.nml"/>
+  <include href="NSMR.cell.nml"/>
+  <include href="I2R.cell.nml"/>
+  <include href="M2R.cell.nml"/>
+  <include href="I1L.cell.nml"/>
+  <include href="Serotonin_Glutamate.synapse.nml"/>
+  <include href="Acetylcholine.synapse.nml"/>
+  <include href="Generic_GJ.synapse.nml"/>
+  <include href="Glutamate.synapse.nml"/>
+  <network id="gvft_network_bio_prior_lamW_0.144_DF_0.013_t90.net" type="networkWithTemperature" temperature="20.0 degC">
+    <population id="M1" component="M1" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.38 0.42 0.94"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.9698492" y="-0.0050251363" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M2L" component="M2L" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.39 0.51 0.57"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.03517589" y="0.10552765" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M2R" component="M2R" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.17 0.53 0.71"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.19597991" y="0.42713568" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M3L" component="M3L" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.52 0.68 0.76"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.80904526" y="-0.14572865" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M3R" component="M3R" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.3 0.7 0.9"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.638191" y="0.26633167" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M4" component="M4" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.77 0.93 0.51"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.40703517" y="-0.43718594" z="0.0"/>
+      </instance>
+    </population>
+    <population id="M5" component="M5" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.9 0.1 0.7"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.5678392" y="0.28643218" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I1L" component="I1L" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.74 0.66 0.62"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.7788945" y="-0.86934674" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I1R" component="I1R" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.52 0.68 0.76"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.959799" y="1.0" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I2L" component="I2L" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.87 0.83 0.81"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.7788945" y="0.51758796" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I2R" component="I2R" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.65 0.85 0.95"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.65829146" y="-0.80904526" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I3" component="I3" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.12 0.08 0.56"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.8994975" y="0.919598" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I4" component="I4" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.25 0.25 0.75"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.59799" y="-0.44723618" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I5" component="I5" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.38 0.42 0.94"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.095477395" y="-0.57788944" z="0.0"/>
+      </instance>
+    </population>
+    <population id="I6" component="I6" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.51 0.59 0.13"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.6683417" y="0.68844223" z="0.0"/>
+      </instance>
+    </population>
+    <population id="MCL" component="MCL" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.6 0.4 0.8"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.24623117" y="-0.3266332" z="0.0"/>
+      </instance>
+    </population>
+    <population id="MCR" component="MCR" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.38 0.42 0.94"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.8190955" y="0.638191" z="0.0"/>
+      </instance>
+    </population>
+    <population id="MI" component="MI" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.5 0.5 0.5"/>
+      </annotation>
+      <instance id="0">
+        <location x="0.3266332" y="0.095477395" z="0.0"/>
+      </instance>
+    </population>
+    <population id="NSML" component="NSML" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.82 0.38 0.66"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.36683416" y="0.55778897" z="0.0"/>
+      </instance>
+    </population>
+    <population id="NSMR" component="NSMR" type="populationList" size="1">
+      <annotation>
+        <property tag="color" value="0.6 0.4 0.8"/>
+      </annotation>
+      <instance id="0">
+        <location x="-0.5477387" y="-0.41708544" z="0.0"/>
+      </instance>
+    </population>
+    <projection id="NCXLS_M5_I2L" presynapticPopulation="M5" postsynapticPopulation="I2L" synapse="Acetylcholine">
+      <connection id="0" preCellId="../M5/0/M5" postCellId="../I2L/0/I2L" preSegmentId="3" postSegmentId="2" preFractionAlong="0.7257164632199491" postFractionAlong="0.8944525568242322"/>
+    </projection>
+    <projection id="NCXLS_M5_I1R" presynapticPopulation="M5" postsynapticPopulation="I1R" synapse="Acetylcholine">
+      <connection id="1" preCellId="../M5/0/M5" postCellId="../I1R/0/I1R" preSegmentId="2" postSegmentId="3" preFractionAlong="0.6021169853547795" postFractionAlong="0.5914067594224881"/>
+    </projection>
+    <projection id="NCXLS_I5_I1L" presynapticPopulation="I5" postsynapticPopulation="I1L" synapse="Glutamate">
+      <connection id="2" preCellId="../I5/0/I5" postCellId="../I1L/0/I1L" preSegmentId="7" postSegmentId="3" preFractionAlong="0.20047451552840279" postFractionAlong="0.10926421030962141"/>
+    </projection>
+    <electricalProjection id="NCXLS_I5_I2R_GJ" presynapticPopulation="I5" postsynapticPopulation="I2R">
+      <electricalConnection id="3" preCell="0" postCell="0" synapse="Generic_GJ" preSegment="4" postSegment="1" preFractionAlong="0.6401983115596238" postFractionAlong="0.2984349123618767"/>
+    </electricalProjection>
+    <projection id="NCXLS_M4_NSMR" presynapticPopulation="M4" postsynapticPopulation="NSMR" synapse="Acetylcholine">
+      <connection id="4" preCellId="../M4/0/M4" postCellId="../NSMR/0/NSMR" preSegmentId="8" postSegmentId="3" preFractionAlong="0.31189908000428046" postFractionAlong="0.2560475651049543"/>
+    </projection>
+    <projection id="NCXLS_M4_M1" presynapticPopulation="M4" postsynapticPopulation="M1" synapse="Acetylcholine">
+      <connection id="5" preCellId="../M4/0/M4" postCellId="../M1/0/M1" preSegmentId="5" postSegmentId="7" preFractionAlong="0.01911609442976403" postFractionAlong="0.4768434683178171"/>
+    </projection>
+    <projection id="NCXLS_I6_I3" presynapticPopulation="I6" postsynapticPopulation="I3" synapse="Acetylcholine">
+      <connection id="6" preCellId="../I6/0/I6" postCellId="../I3/0/I3" preSegmentId="6" postSegmentId="3" preFractionAlong="0.692532431537108" postFractionAlong="0.13443512940812186"/>
+    </projection>
+    <projection id="NCXLS_M3L_I5" presynapticPopulation="M3L" postsynapticPopulation="I5" synapse="Acetylcholine">
+      <connection id="7" preCellId="../M3L/0/M3L" postCellId="../I5/0/I5" preSegmentId="5" postSegmentId="2" preFractionAlong="0.3334073221591105" postFractionAlong="0.7330511898599934"/>
+    </projection>
+    <projection id="NCXLS_M3L_M4" presynapticPopulation="M3L" postsynapticPopulation="M4" synapse="Glutamate">
+      <connection id="8" preCellId="../M3L/0/M3L" postCellId="../M4/0/M4" preSegmentId="9" postSegmentId="3" preFractionAlong="0.9978208556819782" postFractionAlong="0.6768212988573956"/>
+    </projection>
+    <projection id="NCXLS_M3L_MCL" presynapticPopulation="M3L" postsynapticPopulation="MCL" synapse="Acetylcholine">
+      <connection id="9" preCellId="../M3L/0/M3L" postCellId="../MCL/0/MCL" preSegmentId="1" postSegmentId="8" preFractionAlong="0.29461939634619316" postFractionAlong="0.014315277667059978"/>
+    </projection>
+    <projection id="NCXLS_M3L_I1L" presynapticPopulation="M3L" postsynapticPopulation="I1L" synapse="Acetylcholine">
+      <connection id="10" preCellId="../M3L/0/M3L" postCellId="../I1L/0/I1L" preSegmentId="1" postSegmentId="4" preFractionAlong="0.8341445970006758" postFractionAlong="0.7404761319535191"/>
+    </projection>
+    <projection id="NCXLS_M3L_NSMR" presynapticPopulation="M3L" postsynapticPopulation="NSMR" synapse="Acetylcholine">
+      <connection id="11" preCellId="../M3L/0/M3L" postCellId="../NSMR/0/NSMR" preSegmentId="5" postSegmentId="8" preFractionAlong="0.9370910284587948" postFractionAlong="0.8219266359399297"/>
+    </projection>
+    <projection id="NCXLS_M3L_I4" presynapticPopulation="M3L" postsynapticPopulation="I4" synapse="Acetylcholine">
+      <connection id="12" preCellId="../M3L/0/M3L" postCellId="../I4/0/I4" preSegmentId="9" postSegmentId="1" preFractionAlong="0.8459214396777321" postFractionAlong="0.6136041142374584"/>
+    </projection>
+    <projection id="NCXLS_M3L_I2R" presynapticPopulation="M3L" postsynapticPopulation="I2R" synapse="Acetylcholine">
+      <connection id="13" preCellId="../M3L/0/M3L" postCellId="../I2R/0/I2R" preSegmentId="8" postSegmentId="7" preFractionAlong="0.48762780966721087" postFractionAlong="0.07764933467160506"/>
+    </projection>
+    <projection id="NCXLS_M2R_I3" presynapticPopulation="M2R" postsynapticPopulation="I3" synapse="Acetylcholine">
+      <connection id="14" preCellId="../M2R/0/M2R" postCellId="../I3/0/I3" preSegmentId="4" postSegmentId="6" preFractionAlong="0.3061373408795932" postFractionAlong="0.5491303362771727"/>
+    </projection>
+    <projection id="NCXLS_M2R_I6" presynapticPopulation="M2R" postsynapticPopulation="I6" synapse="Acetylcholine">
+      <connection id="15" preCellId="../M2R/0/M2R" postCellId="../I6/0/I6" preSegmentId="2" postSegmentId="3" preFractionAlong="0.5225765993367452" postFractionAlong="0.2995656779538739"/>
+    </projection>
+    <projection id="NCXLS_M2R_MCR" presynapticPopulation="M2R" postsynapticPopulation="MCR" synapse="Acetylcholine">
+      <connection id="16" preCellId="../M2R/0/M2R" postCellId="../MCR/0/MCR" preSegmentId="8" postSegmentId="1" preFractionAlong="0.5006242680704178" postFractionAlong="0.7945155444907487"/>
+    </projection>
+    <projection id="NCXLS_M2R_NSML" presynapticPopulation="M2R" postsynapticPopulation="NSML" synapse="Acetylcholine">
+      <connection id="17" preCellId="../M2R/0/M2R" postCellId="../NSML/0/NSML" preSegmentId="6" postSegmentId="2" preFractionAlong="0.07290183536790351" postFractionAlong="0.4028732826326371"/>
+    </projection>
+    <projection id="NCXLS_M2R_I1R" presynapticPopulation="M2R" postsynapticPopulation="I1R" synapse="Acetylcholine">
+      <connection id="18" preCellId="../M2R/0/M2R" postCellId="../I1R/0/I1R" preSegmentId="2" postSegmentId="7" preFractionAlong="0.4013060242197122" postFractionAlong="0.2925150910707418"/>
+    </projection>
+    <electricalProjection id="NCXLS_M3R_M3L_GJ" presynapticPopulation="M3R" postsynapticPopulation="M3L">
+      <electricalConnection id="19" preCell="0" postCell="0" synapse="Generic_GJ" preSegment="8" postSegment="7" preFractionAlong="0.9061110021324971" postFractionAlong="0.32149570124788196"/>
+    </electricalProjection>
+    <projection id="NCXLS_M3R_I1L" presynapticPopulation="M3R" postsynapticPopulation="I1L" synapse="Acetylcholine">
+      <connection id="20" preCellId="../M3R/0/M3R" postCellId="../I1L/0/I1L" preSegmentId="5" postSegmentId="7" preFractionAlong="0.22602899781599972" postFractionAlong="0.640476042175844"/>
+    </projection>
+    <projection id="NCXLS_M3R_I2L" presynapticPopulation="M3R" postsynapticPopulation="I2L" synapse="Acetylcholine">
+      <connection id="21" preCellId="../M3R/0/M3R" postCellId="../I2L/0/I2L" preSegmentId="5" postSegmentId="5" preFractionAlong="0.21462807325880284" postFractionAlong="0.4161214280710923"/>
+    </projection>
+    <projection id="NCXLS_M3R_I1R" presynapticPopulation="M3R" postsynapticPopulation="I1R" synapse="Acetylcholine">
+      <connection id="22" preCellId="../M3R/0/M3R" postCellId="../I1R/0/I1R" preSegmentId="9" postSegmentId="6" preFractionAlong="0.1878428525377741" postFractionAlong="0.7197914533546861"/>
+    </projection>
+    <projection id="NCXLS_M2L_M5" presynapticPopulation="M2L" postsynapticPopulation="M5" synapse="Acetylcholine">
+      <connection id="23" preCellId="../M2L/0/M2L" postCellId="../M5/0/M5" preSegmentId="4" postSegmentId="8" preFractionAlong="0.5546573480350956" postFractionAlong="0.637090837080905"/>
+    </projection>
+    <projection id="NCXLS_M2L_I5" presynapticPopulation="M2L" postsynapticPopulation="I5" synapse="Acetylcholine">
+      <connection id="24" preCellId="../M2L/0/M2L" postCellId="../I5/0/I5" preSegmentId="2" postSegmentId="2" preFractionAlong="0.7139526325065898" postFractionAlong="0.8225347943841967"/>
+    </projection>
+    <projection id="NCXLS_M2L_M3L" presynapticPopulation="M2L" postsynapticPopulation="M3L" synapse="Glutamate">
+      <connection id="25" preCellId="../M2L/0/M2L" postCellId="../M3L/0/M3L" preSegmentId="8" postSegmentId="6" preFractionAlong="0.5632889309538147" postFractionAlong="0.11995369302388992"/>
+    </projection>
+    <projection id="NCXLS_M2L_MI" presynapticPopulation="M2L" postsynapticPopulation="MI" synapse="Acetylcholine">
+      <connection id="26" preCellId="../M2L/0/M2L" postCellId="../MI/0/MI" preSegmentId="7" postSegmentId="8" preFractionAlong="0.27140938044671437" postFractionAlong="0.49669542281794654"/>
+    </projection>
+    <projection id="NCXLS_M2L_M3R" presynapticPopulation="M2L" postsynapticPopulation="M3R" synapse="Acetylcholine">
+      <connection id="27" preCellId="../M2L/0/M2L" postCellId="../M3R/0/M3R" preSegmentId="2" postSegmentId="2" preFractionAlong="0.8237780901011652" postFractionAlong="0.7217215527171793"/>
+    </projection>
+    <projection id="NCXLS_M2L_I1L" presynapticPopulation="M2L" postsynapticPopulation="I1L" synapse="Acetylcholine">
+      <connection id="28" preCellId="../M2L/0/M2L" postCellId="../I1L/0/I1L" preSegmentId="9" postSegmentId="1" preFractionAlong="0.31758679526111666" postFractionAlong="0.00013469300448532007"/>
+    </projection>
+    <projection id="NCXLS_M2L_I4" presynapticPopulation="M2L" postsynapticPopulation="I4" synapse="Acetylcholine">
+      <connection id="29" preCellId="../M2L/0/M2L" postCellId="../I4/0/I4" preSegmentId="2" postSegmentId="6" preFractionAlong="0.7069764874557162" postFractionAlong="0.06268962162186587"/>
+    </projection>
+    <projection id="NCXLS_M2L_I2L" presynapticPopulation="M2L" postsynapticPopulation="I2L" synapse="Acetylcholine">
+      <connection id="30" preCellId="../M2L/0/M2L" postCellId="../I2L/0/I2L" preSegmentId="2" postSegmentId="8" preFractionAlong="0.003819922658583108" postFractionAlong="0.24682386920190225"/>
+    </projection>
+    <projection id="NCXLS_M2L_I2R" presynapticPopulation="M2L" postsynapticPopulation="I2R" synapse="Acetylcholine">
+      <connection id="31" preCellId="../M2L/0/M2L" postCellId="../I2R/0/I2R" preSegmentId="9" postSegmentId="9" preFractionAlong="0.3602339188004279" postFractionAlong="0.27039328638452553"/>
+    </projection>
+    <projection id="NCXLS_M2L_I1R" presynapticPopulation="M2L" postsynapticPopulation="I1R" synapse="Acetylcholine">
+      <connection id="32" preCellId="../M2L/0/M2L" postCellId="../I1R/0/I1R" preSegmentId="2" postSegmentId="4" preFractionAlong="0.7889324717760072" postFractionAlong="0.8918721448107347"/>
+    </projection>
+    <projection id="NCXLS_M1_M5" presynapticPopulation="M1" postsynapticPopulation="M5" synapse="Glutamate">
+      <connection id="33" preCellId="../M1/0/M1" postCellId="../M5/0/M5" preSegmentId="3" postSegmentId="1" preFractionAlong="0.3773136614063236" postFractionAlong="0.9363211539691568"/>
+    </projection>
+    <projection id="NCXLS_M1_I5" presynapticPopulation="M1" postsynapticPopulation="I5" synapse="Acetylcholine">
+      <connection id="34" preCellId="../M1/0/M1" postCellId="../I5/0/I5" preSegmentId="3" postSegmentId="5" preFractionAlong="0.11602268134816929" postFractionAlong="0.042291749222681196"/>
+    </projection>
+    <projection id="NCXLS_M1_I3" presynapticPopulation="M1" postsynapticPopulation="I3" synapse="Acetylcholine">
+      <connection id="35" preCellId="../M1/0/M1" postCellId="../I3/0/I3" preSegmentId="1" postSegmentId="9" preFractionAlong="0.7038570916343312" postFractionAlong="0.004363269650309087"/>
+    </projection>
+    <projection id="NCXLS_M1_I6" presynapticPopulation="M1" postsynapticPopulation="I6" synapse="Acetylcholine">
+      <connection id="36" preCellId="../M1/0/M1" postCellId="../I6/0/I6" preSegmentId="7" postSegmentId="5" preFractionAlong="0.7130460506343187" postFractionAlong="0.6663854135782065"/>
+    </projection>
+    <projection id="NCXLS_M1_MCL" presynapticPopulation="M1" postsynapticPopulation="MCL" synapse="Acetylcholine">
+      <connection id="37" preCellId="../M1/0/M1" postCellId="../MCL/0/MCL" preSegmentId="1" postSegmentId="8" preFractionAlong="0.761037790250783" postFractionAlong="0.950772707731338"/>
+    </projection>
+    <projection id="NCXLS_M1_M3L" presynapticPopulation="M1" postsynapticPopulation="M3L" synapse="Acetylcholine">
+      <connection id="38" preCellId="../M1/0/M1" postCellId="../M3L/0/M3L" preSegmentId="9" postSegmentId="9" preFractionAlong="0.10536492225085647" postFractionAlong="0.7818238633449356"/>
+    </projection>
+    <projection id="NCXLS_M1_MCR" presynapticPopulation="M1" postsynapticPopulation="MCR" synapse="Acetylcholine">
+      <connection id="39" preCellId="../M1/0/M1" postCellId="../MCR/0/MCR" preSegmentId="5" postSegmentId="1" preFractionAlong="0.36005046590097833" postFractionAlong="0.9567998154842862"/>
+    </projection>
+    <projection id="NCXLS_M1_M2R" presynapticPopulation="M1" postsynapticPopulation="M2R" synapse="Acetylcholine">
+      <connection id="40" preCellId="../M1/0/M1" postCellId="../M2R/0/M2R" preSegmentId="9" postSegmentId="3" preFractionAlong="0.457699605159294" postFractionAlong="0.20888272400516372"/>
+    </projection>
+    <projection id="NCXLS_M1_MI" presynapticPopulation="M1" postsynapticPopulation="MI" synapse="Acetylcholine">
+      <connection id="41" preCellId="../M1/0/M1" postCellId="../MI/0/MI" preSegmentId="3" postSegmentId="9" preFractionAlong="0.0523550201874724" postFractionAlong="0.7675676285179183"/>
+    </projection>
+    <projection id="NCXLS_M1_NSML" presynapticPopulation="M1" postsynapticPopulation="NSML" synapse="Acetylcholine">
+      <connection id="42" preCellId="../M1/0/M1" postCellId="../NSML/0/NSML" preSegmentId="2" postSegmentId="5" preFractionAlong="0.8221798868164233" postFractionAlong="0.8503480011198954"/>
+    </projection>
+    <projection id="NCXLS_M1_M3R" presynapticPopulation="M1" postsynapticPopulation="M3R" synapse="Acetylcholine">
+      <connection id="43" preCellId="../M1/0/M1" postCellId="../M3R/0/M3R" preSegmentId="9" postSegmentId="9" preFractionAlong="0.8697631766817108" postFractionAlong="0.7304963609587902"/>
+    </projection>
+    <projection id="NCXLS_M1_I1L" presynapticPopulation="M1" postsynapticPopulation="I1L" synapse="Acetylcholine">
+      <connection id="44" preCellId="../M1/0/M1" postCellId="../I1L/0/I1L" preSegmentId="6" postSegmentId="1" preFractionAlong="0.7962405955628543" postFractionAlong="0.7540230349283823"/>
+    </projection>
+    <projection id="NCXLS_M1_M2L" presynapticPopulation="M1" postsynapticPopulation="M2L" synapse="Acetylcholine">
+      <connection id="45" preCellId="../M1/0/M1" postCellId="../M2L/0/M2L" preSegmentId="2" postSegmentId="9" preFractionAlong="0.1366009036511726" postFractionAlong="0.6516397604772766"/>
+    </projection>
+    <projection id="NCXLS_M1_I4" presynapticPopulation="M1" postsynapticPopulation="I4" synapse="Acetylcholine">
+      <connection id="46" preCellId="../M1/0/M1" postCellId="../I4/0/I4" preSegmentId="2" postSegmentId="3" preFractionAlong="0.31562734376335" postFractionAlong="0.6448326040223138"/>
+    </projection>
+    <projection id="NCXLS_M1_I2L" presynapticPopulation="M1" postsynapticPopulation="I2L" synapse="Acetylcholine">
+      <connection id="47" preCellId="../M1/0/M1" postCellId="../I2L/0/I2L" preSegmentId="5" postSegmentId="8" preFractionAlong="0.4681541413010304" postFractionAlong="0.5791752553747221"/>
+    </projection>
+    <projection id="NCXLS_M1_I2R" presynapticPopulation="M1" postsynapticPopulation="I2R" synapse="Acetylcholine">
+      <connection id="48" preCellId="../M1/0/M1" postCellId="../I2R/0/I2R" preSegmentId="5" postSegmentId="3" preFractionAlong="0.6668666605509217" postFractionAlong="0.8233094298207179"/>
+    </projection>
+    <projection id="NCXLS_M1_I1R" presynapticPopulation="M1" postsynapticPopulation="I1R" synapse="Acetylcholine">
+      <connection id="49" preCellId="../M1/0/M1" postCellId="../I1R/0/I1R" preSegmentId="6" postSegmentId="5" preFractionAlong="0.2675926767279715" postFractionAlong="0.8354802257421944"/>
+    </projection>
+  </network>
+</neuroml>

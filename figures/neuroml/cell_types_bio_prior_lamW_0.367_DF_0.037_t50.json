@@ -1,0 +1,111 @@
+{
+  "node_types": {
+    "16": {
+      "basic_type": "motor",
+      "cell_class": "M1"
+    },
+    "19": {
+      "basic_type": "motor",
+      "cell_class": "M2L"
+    },
+    "8": {
+      "basic_type": "motor",
+      "cell_class": "M2R"
+    },
+    "1": {
+      "basic_type": "motor",
+      "cell_class": "M3L"
+    },
+    "7": {
+      "basic_type": "motor",
+      "cell_class": "M3R"
+    },
+    "0": {
+      "basic_type": "motor",
+      "cell_class": "M4"
+    },
+    "6": {
+      "basic_type": "motor",
+      "cell_class": "M5"
+    },
+    "12": {
+      "basic_type": "sensory",
+      "cell_class": "I1L"
+    },
+    "3": {
+      "basic_type": "sensory",
+      "cell_class": "I1R"
+    },
+    "17": {
+      "basic_type": "sensory",
+      "cell_class": "I2L"
+    },
+    "2": {
+      "basic_type": "sensory",
+      "cell_class": "I2R"
+    },
+    "9": {
+      "basic_type": "sensory",
+      "cell_class": "I3"
+    },
+    "13": {
+      "basic_type": "sensory",
+      "cell_class": "I4"
+    },
+    "14": {
+      "basic_type": "sensory",
+      "cell_class": "I5"
+    },
+    "18": {
+      "basic_type": "sensory",
+      "cell_class": "I6"
+    },
+    "10": {
+      "basic_type": "inter",
+      "cell_class": "MCL"
+    },
+    "15": {
+      "basic_type": "inter",
+      "cell_class": "MCR"
+    },
+    "4": {
+      "basic_type": "inter",
+      "cell_class": "MI"
+    },
+    "5": {
+      "basic_type": "inter",
+      "cell_class": "NSML"
+    },
+    "11": {
+      "basic_type": "inter",
+      "cell_class": "NSMR"
+    }
+  },
+  "cell_class_distribution": {
+    "M1": 0.05,
+    "M2L": 0.05,
+    "M2R": 0.05,
+    "M3L": 0.05,
+    "M3R": 0.05,
+    "M4": 0.05,
+    "M5": 0.05,
+    "I1L": 0.05,
+    "I1R": 0.05,
+    "I2L": 0.05,
+    "I2R": 0.05,
+    "I3": 0.05,
+    "I4": 0.05,
+    "I5": 0.05,
+    "I6": 0.05,
+    "MCL": 0.05,
+    "MCR": 0.05,
+    "MI": 0.05,
+    "NSML": 0.05,
+    "NSMR": 0.05
+  },
+  "basic_type_distribution": {
+    "motor": 0.35,
+    "sensory": 0.4,
+    "inter": 0.25
+  }
+}
