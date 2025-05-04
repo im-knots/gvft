@@ -3,9 +3,9 @@ import numpy as np
 import os
 import json
 from collections import Counter
-import pyneuroml.writers as writers
-from pyneuroml import pynml
-from pyneuroml.utils import validate_neuroml2
+import xml.etree.ElementTree as ET
+import datetime
+from lxml import etree
 
 class GraphToNeuroML:
     """
@@ -262,152 +262,28 @@ class GraphToNeuroML:
             
         return edge_props
     
-    def create_neuroml_network(self, G, node_types=None):
-        """
-        Create a NeuroML network from a graph
-        
-        Args:
-            G (nx.Graph): The network graph
-            node_types (dict, optional): Dictionary mapping node IDs to cell types
-            
-        Returns:
-            neuroml.Network: The NeuroML network model
-        """
-        # Create the NeuroML document
-        nml_doc = neuroml.NeuroMLDocument(id="EvolvedNetwork")
-        
-        # Create a network
-        net = neuroml.Network(id="network")
-        nml_doc.networks.append(net)
-        
-        # If cell types haven't been provided, assign them
-        if node_types is None:
-            node_types = self.assign_cell_types(G)
-        
-        # Assign synapse properties
-        synapse_props = self.assign_synapse_properties(G, node_types)
-        
-        # Create cell types (if they don't exist)
-        cell_type_defs = {}
-        
-        for cell_type, params in self.default_params.items():
-            # Create a cell type
-            cell_id = f"{cell_type}_cell"
-            
-            # Use izhikevich cell model for now
-            cell = neuroml.IzhikevichCell(
-                id=cell_id,
-                v0=params['v_rest'],
-                thresh=params['threshold'],
-                a=0.02,  # Standard Izhikevich parameters
-                b=0.2,
-                c=params['v_rest'],
-                d=2.0,
-                peak=30.0
-            )
-            
-            nml_doc.izhikevich_cells.append(cell)
-            cell_type_defs[cell_type] = cell_id
-        
-        # Create synapse types
-        exc_syn = neuroml.ExpTwoSynapse(
-            id="exc_syn",
-            gbase="5nS",
-            tau_decay="2ms",
-            tau_rise="0.5ms",
-            e_rev="0mV"
+    def create_neuroml_document(self, network_id="EvolvedNetwork"):
+        """Create a basic NeuroML2 document with standard headers."""
+        # Create the root element with appropriate namespaces
+        neuroml = etree.Element(
+            "neuroml",
+            nsmap={
+                None: "http://www.neuroml.org/schema/neuroml2",
+                "xsi": "http://www.w3.org/2001/XMLSchema-instance",
+            },
+            attrib={
+                "{http://www.w3.org/2001/XMLSchema-instance}schemaLocation": 
+                    "http://www.neuroml.org/schema/neuroml2 https://raw.githubusercontent.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd",
+                "id": network_id
+            }
         )
         
-        inh_syn = neuroml.ExpTwoSynapse(
-            id="inh_syn",
-            gbase="5nS",
-            tau_decay="5ms",
-            tau_rise="1ms",
-            e_rev="-80mV"
-        )
+        # Add creation timestamp and notes
+        notes = etree.SubElement(neuroml, "notes")
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        notes.text = f"NeuroML2 network generated from GVFT simulation on {timestamp}\n"
         
-        nml_doc.exp_two_synapses.append(exc_syn)
-        nml_doc.exp_two_synapses.append(inh_syn)
-        
-        # Add populations for each cell type
-        populations = {}
-        
-        for cell_type in self.cell_types:
-            # Count nodes of this type
-            type_nodes = [n for n, t in node_types.items() if t == cell_type]
-            pop_size = len(type_nodes)
-            
-            if pop_size > 0:
-                # Create population
-                pop_id = f"{cell_type}_population"
-                pop = neuroml.Population(
-                    id=pop_id,
-                    component=cell_type_defs[cell_type],
-                    size=pop_size
-                )
-                
-                net.populations.append(pop)
-                populations[cell_type] = {
-                    'id': pop_id,
-                    'nodes': type_nodes,
-                    'size': pop_size
-                }
-        
-        # Create node ID to population index mapping
-        node_indices = {}
-        for cell_type, pop_info in populations.items():
-            for i, node_id in enumerate(pop_info['nodes']):
-                node_indices[node_id] = {
-                    'population': pop_info['id'],
-                    'index': i
-                }
-        
-        # Add projections (connections between populations)
-        projections = {}
-        
-        # Iterate over all synaptic connections
-        for conn_id, props in synapse_props.items():
-            source_id = props['source']
-            target_id = props['target']
-            
-            # Skip if nodes don't exist in our mapping
-            if source_id not in node_indices or target_id not in node_indices:
-                continue
-            
-            source_pop = node_indices[source_id]['population']
-            source_idx = node_indices[source_id]['index']
-            
-            target_pop = node_indices[target_id]['population']
-            target_idx = node_indices[target_id]['index']
-            
-            # Create projection ID: source_pop_to_target_pop
-            proj_id = f"{source_pop}_to_{target_pop}"
-            
-            # Create the projection if it doesn't exist
-            if proj_id not in projections:
-                syn_type = "exc_syn" if props['is_excitatory'] else "inh_syn"
-                
-                proj = neuroml.Projection(
-                    id=proj_id,
-                    presynaptic_population=source_pop,
-                    postsynaptic_population=target_pop,
-                    synapse=syn_type
-                )
-                
-                net.projections.append(proj)
-                projections[proj_id] = proj
-            
-            # Add connection to the projection
-            conn = neuroml.Connection(
-                id=conn_id,
-                pre_cell_id=f"{source_idx}",
-                post_cell_id=f"{target_idx}",
-                weight=str(props['weight']),
-                delay=f"{props['delay']}ms"
-            )
-            projections[proj_id].connections.append(conn)
-        
-        return nml_doc
+        return neuroml
     
     def export_to_neuroml(self, G, output_path, node_types=None):
         """
@@ -426,14 +302,188 @@ class GraphToNeuroML:
             if node_types is None:
                 node_types = self.assign_cell_types(G)
             
-            # Create the NeuroML network
-            nml_doc = self.create_neuroml_network(G, node_types)
+            # Assign synapse properties
+            synapse_props = self.assign_synapse_properties(G, node_types)
             
-            # Write the NeuroML document to file
-            writers.NeuroMLWriter.write(nml_doc, output_path)
+            # Create the NeuroML document
+            network_id = os.path.splitext(os.path.basename(output_path))[0]
+            neuroml_doc = self.create_neuroml_document(network_id)
             
-            # Validate the NeuroML document
-            validate_neuroml2(output_path)
+            # Create cell types
+            for cell_type, params in self.default_params.items():
+                cell_id = f"{cell_type}_cell"
+                
+                # Create izhikevich cell
+                cell = etree.SubElement(
+                    neuroml_doc, 
+                    "izhikevichCell", 
+                    id=cell_id,
+                    v0=f"{params['v_rest']}mV",
+                    thresh=f"{params['threshold']}mV",
+                    a="0.02",
+                    b="0.2",
+                    c=f"{params['v_rest']}mV",
+                    d="2.0",
+                    peak="30.0mV"
+                )
+            
+            # Create synapse types
+            etree.SubElement(
+                neuroml_doc,
+                "expTwoSynapse",
+                id="exc_syn",
+                gbase="5nS",
+                tauDecay="2ms",
+                tauRise="0.5ms",
+                erev="0mV"
+            )
+            
+            etree.SubElement(
+                neuroml_doc,
+                "expTwoSynapse",
+                id="inh_syn",
+                gbase="5nS",
+                tauDecay="5ms",
+                tauRise="1ms",
+                erev="-80mV"
+            )
+            
+            # Create network container
+            network = etree.SubElement(
+                neuroml_doc,
+                "network",
+                id=f"{network_id}_net",
+                type="networkWithTemperature",
+                temperature="36.0 degC"
+            )
+            
+            # Group nodes by cell type
+            populations = {}
+            for cell_type in self.cell_types:
+                populations[cell_type] = [n for n, t in node_types.items() if t == cell_type]
+            
+            # Create populations
+            pop_info = {}
+            for cell_type, nodes in populations.items():
+                if not nodes:
+                    continue
+                    
+                pop_id = f"{cell_type}_population"
+                
+                # Create population
+                pop = etree.SubElement(
+                    network,
+                    "population",
+                    id=pop_id,
+                    component=f"{cell_type}_cell",
+                    type="populationList",
+                    size=str(len(nodes))
+                )
+                
+                # Add instances
+                for i, node_id in enumerate(nodes):
+                    instance = etree.SubElement(pop, "instance", id=str(i))
+                    
+                    # Get position if available
+                    pos = None
+                    if 'pos' in G.nodes[node_id]:
+                        pos = G.nodes[node_id]['pos']
+                    else:
+                        # Default position
+                        pos = (float(node_id) / len(G.nodes) * 200 - 100, 0)
+                    
+                    # Add location
+                    etree.SubElement(
+                        instance,
+                        "location",
+                        x=f"{pos[0]:.6f}",
+                        y=f"{pos[1]:.6f}",
+                        z="0"
+                    )
+                
+                # Store mapping of node IDs to population indices
+                pop_info[cell_type] = {
+                    'id': pop_id,
+                    'nodes': nodes
+                }
+            
+            # Create a lookup for node to population mapping
+            node_to_pop = {}
+            for cell_type, info in pop_info.items():
+                for i, node_id in enumerate(info['nodes']):
+                    node_to_pop[node_id] = {
+                        'pop_id': info['id'],
+                        'index': i
+                    }
+            
+            # Group connections by source/target population pairs
+            proj_connections = {}
+            
+            for conn_id, props in synapse_props.items():
+                source = props['source']
+                target = props['target']
+                
+                # Skip if source or target not in mapping
+                if source not in node_to_pop or target not in node_to_pop:
+                    continue
+                
+                source_pop = node_to_pop[source]['pop_id']
+                source_idx = node_to_pop[source]['index']
+                
+                target_pop = node_to_pop[target]['pop_id']
+                target_idx = node_to_pop[target]['index']
+                
+                # Create projection key
+                proj_key = f"{source_pop}_{target_pop}_{'exc' if props['is_excitatory'] else 'inh'}"
+                
+                # Add to projection group
+                if proj_key not in proj_connections:
+                    proj_connections[proj_key] = []
+                
+                proj_connections[proj_key].append({
+                    'id': conn_id,
+                    'pre_cell': source_idx,
+                    'post_cell': target_idx,
+                    'weight': props['weight'],
+                    'delay': props['delay']
+                })
+            
+            # Create projections
+            for proj_key, connections in proj_connections.items():
+                if not connections:
+                    continue
+                
+                # Parse projection key
+                parts = proj_key.split('_')
+                source_pop = parts[0]
+                target_pop = parts[1]
+                syn_type = "exc_syn" if parts[2] == "exc" else "inh_syn"
+                
+                # Create projection
+                proj = etree.SubElement(
+                    network,
+                    "projection",
+                    id=proj_key,
+                    presynapticPopulation=source_pop,
+                    postsynapticPopulation=target_pop,
+                    synapse=syn_type
+                )
+                
+                # Add connections
+                for conn in connections:
+                    etree.SubElement(
+                        proj,
+                        "connection",
+                        id=conn['id'],
+                        preCellId=f"../{source_pop}/{conn['pre_cell']}/{source_pop}",
+                        postCellId=f"../{target_pop}/{conn['post_cell']}/{target_pop}",
+                        weight=str(conn['weight']),
+                        delay=f"{conn['delay']}ms"
+                    )
+            
+            # Write to file
+            tree = etree.ElementTree(neuroml_doc)
+            tree.write(output_path, pretty_print=True, xml_declaration=True, encoding="UTF-8")
             
             print(f"Successfully exported to {output_path}")
             return True

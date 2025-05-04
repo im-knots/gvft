@@ -4,12 +4,21 @@ import os
 import seaborn as sns
 import pandas as pd
 import networkx as nx
-from matplotlib.colors import ListedColormap
-import matplotlib.patches as mpatches
+import sys
+
+# Add the parent directory to sys.path to allow imports from there
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+try:
+    from graph_to_neuroml import GraphToNeuroML
+    NEUROML_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: Could not import GraphToNeuroML: {e}")
+    print("NeuroML export functionality will be disabled.")
+    NEUROML_AVAILABLE = False
 
 def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, Graphs, 
-                         X_np, Y_np, x_np, y_np, config, output_dir, params, 
-                         NetworkX_graphs=None, Communities=None, bio_prior=False):
+                         X_np, Y_np, x_np, y_np, config, output_dir, params, bio_prior=False,
+                         NetworkX_graphs=None, Communities=None):
     """Visualize simulation results with multi-panel figures."""
     idx, current_lam_W, D_F = params
     timesteps_to_store = list(range(0, config.timesteps_sim + 1, config.view_step))
@@ -18,12 +27,7 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
     
     n_show = len(timesteps_to_store)
     row_labels = ["Flow Mag $|F|$", "Strength $W(x)$", "Flow Field $F(x)$", "Graph & Fields"]
-    
-    # Add community detection row if available
-    if NetworkX_graphs is not None and Communities is not None:
-        row_labels.append("Community Structure")
-    
-    fig, axs = plt.subplots(len(row_labels), n_show, figsize=(4 * n_show, 3 * len(row_labels)), constrained_layout=True)
+    fig, axs = plt.subplots(len(row_labels), n_show, figsize=(4 * n_show, 13), constrained_layout=True)
     
     # Handle case where only one timestep is stored (reshape axes)
     if n_show == 1:
@@ -33,6 +37,15 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
     print(f"Generating visualization for {prior_text}lam_W={current_lam_W:.3f}, D_F={D_F:.3f}...")
     
     base_grid_size = 200  # For scaling adjustments
+    
+    # Create directory for NeuroML output if it doesn't exist and NeuroML export is available
+    neuroml_converter = None
+    if NEUROML_AVAILABLE:
+        neuroml_output_dir = os.path.join(output_dir, "neuroml")
+        os.makedirs(neuroml_output_dir, exist_ok=True)
+        
+        # Initialize GraphToNeuroML converter
+        neuroml_converter = GraphToNeuroML()
     
     # Calculate metrics for each timestep
     from metrics_utils import compute_field_metrics
@@ -87,78 +100,88 @@ def visualize_simulation(Fx_series, Fy_series, W_series, Module_coords_series, G
                               density=streamplot_density, linewidth=0.5)
         axs[3, i].scatter(module_coords_t[:, 0], module_coords_t[:, 1], c='blue', s=50, edgecolors='black', zorder=3, label='Modules')
         
-        for m in range(config.num_modules):
-            for n in range(config.num_modules):
-                if weights[m, n] > 0.01:
-                    x0, y0 = module_coords_t[m]
-                    x1, y1 = module_coords_t[n]
-                    arrow_alpha = np.clip(weights[m, n] * 1.5, 0.1, 1.0)
-                    arrow_width = np.clip(weights[m, n] * 1.5, 0.5, 1.5)
+        # Prefer using pre-built NetworkX graph if available
+        G = None
+        if NetworkX_graphs is not None and t_idx < len(NetworkX_graphs) and NetworkX_graphs[t_idx] is not None:
+            G = NetworkX_graphs[t_idx]
+            # Draw connection arrows from the NetworkX graph
+            for u, v, data in G.edges(data=True):
+                if 'weight' in data and data['weight'] > 0.01:
+                    x0, y0 = module_coords_t[u]
+                    x1, y1 = module_coords_t[v]
+                    arrow_alpha = np.clip(data['weight'] * 1.5, 0.1, 1.0)
+                    arrow_width = np.clip(data['weight'] * 1.5, 0.5, 1.5)
                     dx_arrow = (x1 - x0) * 0.85
                     dy_arrow = (y1 - y0) * 0.85
                     if abs(dx_arrow) > 1e-6 or abs(dy_arrow) > 1e-6:
                         axs[3, i].arrow(x0, y0, dx_arrow, dy_arrow, head_width=0.06, head_length=0.08, 
-                                       length_includes_head=True, alpha=arrow_alpha, color='green', 
-                                       linewidth=arrow_width, zorder=2)
+                                      length_includes_head=True, alpha=arrow_alpha, color='green', 
+                                      linewidth=arrow_width, zorder=2)
+        else:
+            # Create NetworkX graph from weights matrix if not provided
+            G = nx.DiGraph()
+            
+            # Add nodes with positions
+            for node_idx in range(len(module_coords_t)):
+                # Convert from tensor to numpy or list for position data
+                if isinstance(module_coords_t, torch.Tensor):
+                    pos = module_coords_t[node_idx].cpu().numpy()
+                else:
+                    pos = module_coords_t[node_idx]
+                G.add_node(node_idx, pos=tuple(pos))
+            
+            # Add edges with weights and visualization
+            for m in range(config.num_modules):
+                for n in range(config.num_modules):
+                    if weights[m, n] > 0.01:
+                        # Add to NetworkX graph
+                        weight_val = float(weights[m, n]) if isinstance(weights[m, n], (np.number, torch.Tensor)) else weights[m, n]
+                        G.add_edge(m, n, weight=weight_val)
+                        
+                        # Also draw the arrows on the visualization
+                        x0, y0 = module_coords_t[m]
+                        x1, y1 = module_coords_t[n]
+                        arrow_alpha = np.clip(weights[m, n] * 1.5, 0.1, 1.0)
+                        arrow_width = np.clip(weights[m, n] * 1.5, 0.5, 1.5)
+                        dx_arrow = (x1 - x0) * 0.85
+                        dy_arrow = (y1 - y0) * 0.85
+                        if abs(dx_arrow) > 1e-6 or abs(dy_arrow) > 1e-6:
+                            axs[3, i].arrow(x0, y0, dx_arrow, dy_arrow, head_width=0.06, head_length=0.08, 
+                                          length_includes_head=True, alpha=arrow_alpha, color='green', 
+                                          linewidth=arrow_width, zorder=2)
+        
+        # Add community information if available
+        if Communities is not None and t_idx < len(Communities) and Communities[t_idx] is not None:
+            community_data = Communities[t_idx]
+            # Implement community visualization if needed
+            pass
+        
+        # Export to NeuroML if the converter is available and graph has edges
+        if neuroml_converter and t > 0 and G.number_of_edges() > 0:
+            try:
+                # Define NeuroML output filename
+                bio_tag = "bio_prior_" if bio_prior else ""
+                neuroml_filename = f"gvft_network_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.nml"
+                neuroml_path = os.path.join(neuroml_output_dir, neuroml_filename)
+                
+                # Generate cell type assignments
+                node_types = neuroml_converter.assign_cell_types(G)
+                
+                # Export to NeuroML
+                neuroml_converter.export_to_neuroml(G, neuroml_path, node_types)
+                
+                # Also save cell type assignments to JSON for reference
+                json_filename = f"cell_types_{bio_tag}lamW_{current_lam_W:.3f}_DF_{D_F:.3f}_t{t}.json"
+                json_path = os.path.join(neuroml_output_dir, json_filename)
+                neuroml_converter.export_cell_types_to_json(node_types, json_path)
+                
+                print(f"  Saved NeuroML for timestep t={t} to {neuroml_filename}")
+            except Exception as e:
+                print(f"  Error exporting to NeuroML for timestep t={t}: {e}")
         
         axs[3, i].set_xlim(-1, 1); axs[3, i].set_ylim(-1, 1)
         axs[3, i].set_aspect('equal', adjustable='box')
         axs[3, i].set_xticks([]); axs[3, i].set_yticks([])
-        
-        # Row 4 (if available): Community Structure
-        if len(row_labels) > 4 and NetworkX_graphs is not None and Communities is not None:
-            if i > 0 and t_idx <= len(NetworkX_graphs):  # Skip t=0 for communities
-                G = NetworkX_graphs[t_idx-1]
-                communities = Communities[t_idx-1]
-                
-                # Create a colormap for communities
-                num_communities = len(communities)
-                colors = plt.cm.tab10(np.linspace(0, 1, max(num_communities, 10)))
-                
-                # Create position dictionary for nx.draw
-                pos = {}
-                color_map = []
-                
-                # Assign colors based on community membership
-                for node in G.nodes():
-                    pos[node] = G.nodes[node]['pos']
-                    
-                    # Find which community this node belongs to
-                    node_community = -1
-                    for comm_idx, comm in enumerate(communities):
-                        if node in comm:
-                            node_community = comm_idx
-                            break
-                            
-                    if node_community >= 0:
-                        color_idx = node_community % len(colors)
-                        color_map.append(colors[color_idx])
-                    else:
-                        color_map.append('gray')
-                
-                # Draw the network with communities
-                nx.draw_networkx_nodes(G, pos, ax=axs[4, i], node_color=color_map, 
-                                       node_size=100, edgecolors='black')
-                nx.draw_networkx_edges(G, pos, ax=axs[4, i], alpha=0.5, arrows=True,
-                                      width=[G[u][v]['weight']*2 for u, v in G.edges()],
-                                      edge_color='gray')
-                
-                # Add legend for communities
-                if num_communities > 0:
-                    handles = []
-                    for c_idx in range(min(num_communities, 5)):  # Limit legend to 5 entries
-                        patch = mpatches.Patch(color=colors[c_idx], label=f'Community {c_idx}')
-                        handles.append(patch)
-                    
-                    if num_communities > 5:
-                        patch = mpatches.Patch(color='lightgray', label=f'+ {num_communities-5} more')
-                        handles.append(patch)
-                        
-                    axs[4, i].legend(handles=handles, loc='upper right', fontsize='xx-small')
-                
-                axs[4, i].set_xlim(-1, 1); axs[4, i].set_ylim(-1, 1)
-                axs[4, i].set_aspect('equal', adjustable='box')
-                axs[4, i].set_title(f"{len(communities)} communities")
     
     # Add row labels
     for row_idx, label in enumerate(row_labels):
