@@ -16,6 +16,7 @@ Imagine trying to design a brain—not by hand-crafting every connection, but by
 ### Selected full gvft evolution simulation with biological priors
 <img src="https://github.com/im-knots/gvft/raw/main/figures/simulation_bio_prior_lamW_0.144_DF_0.033_etacoeff_0.050_grid200.png" alt="GVFT evolution simulation" width="100%"/>
 
+### TODO: Seclected neural simulation data visualizations
 
 ## Experimental Methodology
 
