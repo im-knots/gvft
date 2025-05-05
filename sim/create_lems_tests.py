@@ -11,7 +11,7 @@ from pyneuroml.lems import LEMSSimulation
 from pyneuroml import pynml
 
 def create_oscillation_test(neuroml_file, duration=500, dt=0.025, 
-                           stim_amplitude=0.5, stim_delay=50, stim_duration=400):
+                           stim_amplitude=5.0, stim_delay=50, stim_duration=400):
     """
     Create a LEMS simulation file for testing oscillations in the network.
     
@@ -124,33 +124,33 @@ def create_oscillation_test(neuroml_file, duration=500, dt=0.025,
         for neuron in ["I3", "I4", "I5", "I6", "MI"]:
             simulation.add_column_to_output_file("output_voltages", f"{neuron}_v", f"{neuron}/0/{neuron}/v")
         
-        # We need to create InputLists manually, but the API doesn't have a direct method for this
+        # We need to create inputLists manually, but the API doesn't have a direct method for this
         # We'll generate the complete input list manually after creating the core LEMS file
         
         # Save the initial version of the LEMS file
         lems_file_temp = simulation.save_to_file()
         
-        # Now we need to manually add the InputList elements for the stimuli
+        # Now we need to manually add the inputList elements for the stimuli
         # Read the saved file
         with open(lems_file_temp, 'r') as f:
             lems_content = f.read()
         
-        # Find the position to insert InputList elements - right before the Simulation element
+        # Find the position to insert inputList elements - right before the Simulation element
         simulation_pos = lems_content.find("<Simulation ")
         if simulation_pos == -1:
-            print("Warning: Could not find Simulation element in LEMS file. InputLists may not be added correctly.")
+            print("Warning: Could not find Simulation element in LEMS file. inputLists may not be added correctly.")
             simulation_pos = lems_content.find("</Target>") + 10  # Default position after Target
         
-        # Generate InputList XML for each stimulus
+        # Generate inputList XML for each stimulus
         input_list_xml = ""
         for cell in stim_cells:
             pg_id = f"{cell.lower()}_stim"
             input_list_xml += f"""
-    <InputList id="input_{pg_id}" component="{pg_id}" population="{cell}">
+    <inputList id="input_{pg_id}" component="{pg_id}" population="{cell}">
         <input id="0" target="../{cell}/0/{cell}" destination="synapses"/>
-    </InputList>"""
+    </inputList>"""
         
-        # Insert InputList elements into the LEMS file content
+        # Insert inputList elements into the LEMS file content
         modified_lems_content = lems_content[:simulation_pos] + input_list_xml + "\n    " + lems_content[simulation_pos:]
         
         # Write the modified content back to the file

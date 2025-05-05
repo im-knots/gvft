@@ -3,14 +3,14 @@
     <!-- 12345 -->
 
     <!-- Specify which component to run -->
-    <Target component="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t50_oscillation_test"/>
+    <Target component="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_oscillation_test"/>
 
     <!-- Include core NeuroML2 ComponentType definitions -->
     <Include file="Cells.xml"/>
     <Include file="Networks.xml"/>
     <Include file="Simulation.xml"/>
 
-    <Include file="gvft_network_bio_prior_lamW_0.144_DF_0.019_t50.net.nml"/>
+    <Include file="gvft_network_bio_prior_lamW_0.144_DF_0.019_t20.net.nml"/>
     <Include file="AVAL.cell.nml"/>
     <Include file="LeakConductance.channel.nml"/>
     <Include file="AVAR.cell.nml"/>
@@ -55,19 +55,19 @@
     <Include file="i2r_stim.nml"/>
 
     
-    <InputList id="input_i1l_stim" component="i1l_stim" population="I1L">
+    <inputList id="input_i1l_stim" component="i1l_stim" population="I1L">
         <input id="0" target="../I1L/0/I1L" destination="synapses"/>
-    </InputList>
-    <InputList id="input_i1r_stim" component="i1r_stim" population="I1R">
+    </inputList>
+    <inputList id="input_i1r_stim" component="i1r_stim" population="I1R">
         <input id="0" target="../I1R/0/I1R" destination="synapses"/>
-    </InputList>
-    <InputList id="input_i2l_stim" component="i2l_stim" population="I2L">
+    </inputList>
+    <inputList id="input_i2l_stim" component="i2l_stim" population="I2L">
         <input id="0" target="../I2L/0/I2L" destination="synapses"/>
-    </InputList>
-    <InputList id="input_i2r_stim" component="i2r_stim" population="I2R">
+    </inputList>
+    <inputList id="input_i2r_stim" component="i2r_stim" population="I2R">
         <input id="0" target="../I2R/0/I2R" destination="synapses"/>
-    </InputList>
-    <Simulation id="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t50_oscillation_test" length="500.0ms" step="0.025ms" target="gvft_network_bio_prior_lamW_0_144_DF_0_019_t50" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
+    </inputList>
+    <Simulation id="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_oscillation_test" length="500.0ms" step="0.025ms" target="gvft_network_bio_prior_lamW_0_144_DF_0_019_t20" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
         <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="-50.0" xmax="550.0" ymin="-80" ymax="40">
             <Line id="M1_v" quantity="M1/0/M1/v" scale="1mV" color="#ff0000" timeScale="1ms"/>
             <Line id="M2L_v" quantity="M2L/0/M2L/v" scale="1mV" color="#00ff00" timeScale="1ms"/>
@@ -78,7 +78,7 @@
             <Line id="M5_v" quantity="M5/0/M5/v" scale="1mV" color="#990099" timeScale="1ms"/>
         </Display>
 
-        <OutputFile id="output_voltages" fileName="gvft_network_bio_prior_lamW_0.144_DF_0.019_t50_voltages.dat">
+        <OutputFile id="output_voltages" fileName="gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_voltages.dat">
             <OutputColumn id="M1_v" quantity="M1/0/M1/v"/>
             <OutputColumn id="M2L_v" quantity="M2L/0/M2L/v"/>
             <OutputColumn id="M2R_v" quantity="M2R/0/M2R/v"/>

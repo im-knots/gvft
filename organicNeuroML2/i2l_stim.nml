@@ -4,6 +4,6 @@
          xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd"
          id="i2l_stim">
     
-    <pulseGenerator id="i2l_stim" delay="50ms" duration="400ms" amplitude="0.5nA"/>
+    <pulseGenerator id="i2l_stim" delay="50ms" duration="400ms" amplitude="5.0nA"/>
     
 </neuroml>
