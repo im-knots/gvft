@@ -72,8 +72,7 @@ pip install -r requirements.txt
 cd sim
 python3 main.py --neuroml-file ../organicNeuroML2/PharyngealNetwork.net.nml
 ```
-2. Validation 
-Copy a selected generated .net.nml file to the organicNeuroML2 directory then run something like this
+2. To validate the evolved neuroml file: Copy a selected generated .net.nml file to the organicNeuroML2 directory then run something like this
 ```bash
 pynml -validate ../organicNeuroML2/gvft_network_bio_prior_lamW_0.144_DF_0.019_t20.net.nml
 ```
