@@ -5,7 +5,7 @@ from scipy import signal
 import seaborn as sns
 
 # Load the data file
-data = np.loadtxt('gvft_network_bio_prior_lamW_0.144_DF_0.019_t50_voltages.dat')
+data = np.loadtxt('gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_voltages.dat')
 
 # Create column names based on the output file configuration
 column_names = ['time', 'M1_v', 'M2L_v', 'M2R_v', 'M3L_v', 'M3R_v', 'M4_v', 'M5_v',

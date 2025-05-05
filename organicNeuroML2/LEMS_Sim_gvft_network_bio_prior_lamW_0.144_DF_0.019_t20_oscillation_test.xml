@@ -67,7 +67,7 @@
     <inputList id="input_i2r_stim" component="i2r_stim" population="I2R">
         <input id="0" target="../I2R/0/I2R" destination="synapses"/>
     </inputList>
-    <Simulation id="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_oscillation_test" length="500.0ms" step="0.025ms" target="gvft_network_bio_prior_lamW_0_144_DF_0_019_t20" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
+    <Simulation id="Sim_gvft_network_bio_prior_lamW_0.144_DF_0.019_t20_oscillation_test" length="500.0ms" step="0.025ms" target="gvft_network_bio_prior_lamW_0_144_DF_0_019_t20_net" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
         <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="-50.0" xmax="550.0" ymin="-80" ymax="40">
             <Line id="M1_v" quantity="M1/0/M1/v" scale="1mV" color="#ff0000" timeScale="1ms"/>
             <Line id="M2L_v" quantity="M2L/0/M2L/v" scale="1mV" color="#00ff00" timeScale="1ms"/>

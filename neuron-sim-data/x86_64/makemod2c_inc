@@ -1,0 +1,32 @@
+./Acetylcholine.c: ../Acetylcholine.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Acetylcholine.mod" -o "/home/knots/git/gvft/neuron-sim-data/x86_64")
+
+./Acetylcholine.o: ./Acetylcholine.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Generic_GJ.c: ../Generic_GJ.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Generic_GJ.mod" -o "/home/knots/git/gvft/neuron-sim-data/x86_64")
+
+./Generic_GJ.o: ./Generic_GJ.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./Glutamate.c: ../Glutamate.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "Glutamate.mod" -o "/home/knots/git/gvft/neuron-sim-data/x86_64")
+
+./Glutamate.o: ./Glutamate.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
+./LeakConductance.c: ../LeakConductance.mod
+	@printf " -> $(C_GREEN)NMODL$(C_RESET) $<\\n"
+	(cd "..";  MODLUNIT=$(NRNUNITS) $(NOCMODL) "LeakConductance.mod" -o "/home/knots/git/gvft/neuron-sim-data/x86_64")
+
+./LeakConductance.o: ./LeakConductance.c
+	@printf " -> $(C_GREEN)Compiling$(C_RESET) $<\\n"
+	$(COMPILE) -I".." $(INCLUDES) -fPIC -c $< -o $@
+
