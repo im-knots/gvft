@@ -1214,7 +1214,7 @@ class GraphToNeuroML:
             print(f"Electrical connections: {len(electrical_projections)}")
             
             # Generate LEMS simulation file for the exported network
-            self.generate_lems_file(output_path)
+            # self.generate_lems_file(output_path)
 
             return True
             
