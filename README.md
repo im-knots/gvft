@@ -8,15 +8,17 @@ This is a heavily work in progress and unpolished repo im working on as a fun si
 ## ELI5 
 Imagine trying to design a brain—not by hand-crafting every connection, but by drawing invisible winds that tell neurons where to grow and how to talk to each other. GVFT is like using weather maps to design neural networks. Instead of building brains with wires and blueprints, we use fields—smooth shapes that guide how neurons connect. These fields describe things like: who should talk to who, how strong the messages are, how fast they travel, and what mood the brain is in. We start with a real worm brain (from NeuroML) and turn it into fields. Then we let those fields evolve—like watching weather patterns shift over time. Finally, we convert those evolved fields back into a simulated brain and check if it still behaves like a real one. The big idea? We're not drawing a map of the brain. We're drawing the rules for how the brain builds itself.
 
-## Figures
+## FUNCTIONAL FEATURES
+- neuroml file input as biological priors
+- gvft field input from flat or randomized priors
+- gvft field interation/evolution simulation engine
+- gfvt field to neuroml instantiation
+- neuroml to LEM simulation file
+- LEM simulation file to NEURON simulation
 
-### Phase diagram from param sweep with biological priors and param ranges discovered from wider sweeps
-<img src="https://github.com/im-knots/gvft/raw/main/figures/multi_metric_phase_diagrams_bio_prior_final_grid200.png" alt="multi metric phase diagram" width="100%"/>
+## TODO
+- FIX: Issue with input and output cells in simulation not getting any inputs.
 
-### Selected full gvft evolution simulation with biological priors
-<img src="https://github.com/im-knots/gvft/raw/main/figures/simulation_bio_prior_lamW_0.144_DF_0.033_etacoeff_0.050_grid200.png" alt="GVFT evolution simulation" width="100%"/>
-
-### TODO: Seclected neural simulation data visualizations
 
 ## Experimental Methodology
 
@@ -49,17 +51,15 @@ We’re testing GVFT through three experimental pipelines:
 This multi-pronged approach lets us both explore GVFT's generative potential and validate its biological relevance.
 
 
+## Figures
 
-## FUNCTIONAL FEATURES
-- neuroml file input as biological priors
-- gvft field input from flat or randomized priors
-- gvft field interation/evolution simulation engine
-- gfvt field to neuroml instantiation
-- neuroml to LEM simulation file
-- LEM simulation file to NEURON simulation
+### Phase diagram from param sweep with biological priors and param ranges discovered from wider sweeps
+<img src="https://github.com/im-knots/gvft/raw/main/figures/multi_metric_phase_diagrams_bio_prior_final_grid200.png" alt="multi metric phase diagram" width="100%"/>
 
-## TODO
-- FIX: Issue with input and output cells in simulation not getting any inputs.
+### Selected full gvft evolution simulation with biological priors
+<img src="https://github.com/im-knots/gvft/raw/main/figures/simulation_bio_prior_lamW_0.144_DF_0.033_etacoeff_0.050_grid200.png" alt="GVFT evolution simulation" width="100%"/>
+
+### TODO: Seclected neural simulation data visualizations
 
 ## Local Env setup
 ```bash
