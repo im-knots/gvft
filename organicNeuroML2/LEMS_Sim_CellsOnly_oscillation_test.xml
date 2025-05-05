@@ -1,41 +1,339 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Lems>
 
+    <!-- 12345 -->
+
+    <!-- Specify which component to run -->
     <Target component="Sim_CellsOnly_oscillation_test"/>
 
+    <!-- Include core NeuroML2 ComponentType definitions -->
+    <Include file="Cells.xml"/>
+    <Include file="Networks.xml"/>
     <Include file="Simulation.xml"/>
+
     <Include file="CellsOnly.net.nml"/>
-    
-    <!-- Include the pulse generator files -->
-        <Include file="i1l_stim.nml"/>
+    <Include file="ADAL.cell.nml"/>
+    <Include file="LeakConductance.channel.nml"/>
+    <Include file="ADAR.cell.nml"/>
+    <Include file="ADEL.cell.nml"/>
+    <Include file="ADER.cell.nml"/>
+    <Include file="ADFL.cell.nml"/>
+    <Include file="ADFR.cell.nml"/>
+    <Include file="ADLL.cell.nml"/>
+    <Include file="ADLR.cell.nml"/>
+    <Include file="AFDL.cell.nml"/>
+    <Include file="AFDR.cell.nml"/>
+    <Include file="AIAL.cell.nml"/>
+    <Include file="AIAR.cell.nml"/>
+    <Include file="AIBL.cell.nml"/>
+    <Include file="AIBR.cell.nml"/>
+    <Include file="AIML.cell.nml"/>
+    <Include file="AIMR.cell.nml"/>
+    <Include file="AINL.cell.nml"/>
+    <Include file="AINR.cell.nml"/>
+    <Include file="AIYL.cell.nml"/>
+    <Include file="AIYR.cell.nml"/>
+    <Include file="AIZL.cell.nml"/>
+    <Include file="AIZR.cell.nml"/>
+    <Include file="ALA.cell.nml"/>
+    <Include file="ALML.cell.nml"/>
+    <Include file="ALMR.cell.nml"/>
+    <Include file="ALNL.cell.nml"/>
+    <Include file="ALNR.cell.nml"/>
+    <Include file="AQR.cell.nml"/>
+    <Include file="AS1.cell.nml"/>
+    <Include file="AS10.cell.nml"/>
+    <Include file="AS11.cell.nml"/>
+    <Include file="AS2.cell.nml"/>
+    <Include file="AS3.cell.nml"/>
+    <Include file="AS4.cell.nml"/>
+    <Include file="AS5.cell.nml"/>
+    <Include file="AS6.cell.nml"/>
+    <Include file="AS7.cell.nml"/>
+    <Include file="AS8.cell.nml"/>
+    <Include file="AS9.cell.nml"/>
+    <Include file="ASEL.cell.nml"/>
+    <Include file="ASER.cell.nml"/>
+    <Include file="ASGL.cell.nml"/>
+    <Include file="ASGR.cell.nml"/>
+    <Include file="ASHL.cell.nml"/>
+    <Include file="ASHR.cell.nml"/>
+    <Include file="ASIL.cell.nml"/>
+    <Include file="ASIR.cell.nml"/>
+    <Include file="ASJL.cell.nml"/>
+    <Include file="ASJR.cell.nml"/>
+    <Include file="ASKL.cell.nml"/>
+    <Include file="ASKR.cell.nml"/>
+    <Include file="AUAL.cell.nml"/>
+    <Include file="AUAR.cell.nml"/>
+    <Include file="AVAL.cell.nml"/>
+    <Include file="AVAR.cell.nml"/>
+    <Include file="AVBL.cell.nml"/>
+    <Include file="AVBR.cell.nml"/>
+    <Include file="AVDL.cell.nml"/>
+    <Include file="AVDR.cell.nml"/>
+    <Include file="AVEL.cell.nml"/>
+    <Include file="AVER.cell.nml"/>
+    <Include file="AVFL.cell.nml"/>
+    <Include file="AVFR.cell.nml"/>
+    <Include file="AVG.cell.nml"/>
+    <Include file="AVHL.cell.nml"/>
+    <Include file="AVHR.cell.nml"/>
+    <Include file="AVJL.cell.nml"/>
+    <Include file="AVJR.cell.nml"/>
+    <Include file="AVKL.cell.nml"/>
+    <Include file="AVKR.cell.nml"/>
+    <Include file="AVL.cell.nml"/>
+    <Include file="AVM.cell.nml"/>
+    <Include file="AWAL.cell.nml"/>
+    <Include file="AWAR.cell.nml"/>
+    <Include file="AWBL.cell.nml"/>
+    <Include file="AWBR.cell.nml"/>
+    <Include file="AWCL.cell.nml"/>
+    <Include file="AWCR.cell.nml"/>
+    <Include file="BAGL.cell.nml"/>
+    <Include file="BAGR.cell.nml"/>
+    <Include file="BDUL.cell.nml"/>
+    <Include file="BDUR.cell.nml"/>
+    <Include file="CANL.cell.nml"/>
+    <Include file="CANR.cell.nml"/>
+    <Include file="CEPDL.cell.nml"/>
+    <Include file="CEPDR.cell.nml"/>
+    <Include file="CEPVL.cell.nml"/>
+    <Include file="CEPVR.cell.nml"/>
+    <Include file="DA1.cell.nml"/>
+    <Include file="DA2.cell.nml"/>
+    <Include file="DA3.cell.nml"/>
+    <Include file="DA4.cell.nml"/>
+    <Include file="DA5.cell.nml"/>
+    <Include file="DA6.cell.nml"/>
+    <Include file="DA7.cell.nml"/>
+    <Include file="DA8.cell.nml"/>
+    <Include file="DA9.cell.nml"/>
+    <Include file="DB1.cell.nml"/>
+    <Include file="DB2.cell.nml"/>
+    <Include file="DB3.cell.nml"/>
+    <Include file="DB4.cell.nml"/>
+    <Include file="DB5.cell.nml"/>
+    <Include file="DB6.cell.nml"/>
+    <Include file="DB7.cell.nml"/>
+    <Include file="DD1.cell.nml"/>
+    <Include file="DD2.cell.nml"/>
+    <Include file="DD3.cell.nml"/>
+    <Include file="DD4.cell.nml"/>
+    <Include file="DD5.cell.nml"/>
+    <Include file="DD6.cell.nml"/>
+    <Include file="DVA.cell.nml"/>
+    <Include file="DVB.cell.nml"/>
+    <Include file="DVC.cell.nml"/>
+    <Include file="FLPL.cell.nml"/>
+    <Include file="FLPR.cell.nml"/>
+    <Include file="HSNL.cell.nml"/>
+    <Include file="HSNR.cell.nml"/>
+    <Include file="I1L.cell.nml"/>
+    <Include file="I1R.cell.nml"/>
+    <Include file="I2L.cell.nml"/>
+    <Include file="I2R.cell.nml"/>
+    <Include file="I3.cell.nml"/>
+    <Include file="I4.cell.nml"/>
+    <Include file="I5.cell.nml"/>
+    <Include file="I6.cell.nml"/>
+    <Include file="IL1DL.cell.nml"/>
+    <Include file="IL1DR.cell.nml"/>
+    <Include file="IL1L.cell.nml"/>
+    <Include file="IL1R.cell.nml"/>
+    <Include file="IL1VL.cell.nml"/>
+    <Include file="IL1VR.cell.nml"/>
+    <Include file="IL2DL.cell.nml"/>
+    <Include file="IL2DR.cell.nml"/>
+    <Include file="IL2L.cell.nml"/>
+    <Include file="IL2R.cell.nml"/>
+    <Include file="IL2VL.cell.nml"/>
+    <Include file="IL2VR.cell.nml"/>
+    <Include file="LUAL.cell.nml"/>
+    <Include file="LUAR.cell.nml"/>
+    <Include file="M1.cell.nml"/>
+    <Include file="M2L.cell.nml"/>
+    <Include file="M2R.cell.nml"/>
+    <Include file="M3L.cell.nml"/>
+    <Include file="M3R.cell.nml"/>
+    <Include file="M4.cell.nml"/>
+    <Include file="M5.cell.nml"/>
+    <Include file="MCL.cell.nml"/>
+    <Include file="MCR.cell.nml"/>
+    <Include file="MI.cell.nml"/>
+    <Include file="NSML.cell.nml"/>
+    <Include file="NSMR.cell.nml"/>
+    <Include file="OLLL.cell.nml"/>
+    <Include file="OLLR.cell.nml"/>
+    <Include file="OLQDL.cell.nml"/>
+    <Include file="OLQDR.cell.nml"/>
+    <Include file="OLQVL.cell.nml"/>
+    <Include file="OLQVR.cell.nml"/>
+    <Include file="PDA.cell.nml"/>
+    <Include file="PDB.cell.nml"/>
+    <Include file="PDEL.cell.nml"/>
+    <Include file="PDER.cell.nml"/>
+    <Include file="PHAL.cell.nml"/>
+    <Include file="PHAR.cell.nml"/>
+    <Include file="PHBL.cell.nml"/>
+    <Include file="PHBR.cell.nml"/>
+    <Include file="PHCL.cell.nml"/>
+    <Include file="PHCR.cell.nml"/>
+    <Include file="PLML.cell.nml"/>
+    <Include file="PLMR.cell.nml"/>
+    <Include file="PLNL.cell.nml"/>
+    <Include file="PLNR.cell.nml"/>
+    <Include file="PQR.cell.nml"/>
+    <Include file="PVCL.cell.nml"/>
+    <Include file="PVCR.cell.nml"/>
+    <Include file="PVDL.cell.nml"/>
+    <Include file="PVDR.cell.nml"/>
+    <Include file="PVM.cell.nml"/>
+    <Include file="PVNL.cell.nml"/>
+    <Include file="PVNR.cell.nml"/>
+    <Include file="PVPL.cell.nml"/>
+    <Include file="PVPR.cell.nml"/>
+    <Include file="PVQL.cell.nml"/>
+    <Include file="PVQR.cell.nml"/>
+    <Include file="PVR.cell.nml"/>
+    <Include file="PVT.cell.nml"/>
+    <Include file="PVWL.cell.nml"/>
+    <Include file="PVWR.cell.nml"/>
+    <Include file="RIAL.cell.nml"/>
+    <Include file="RIAR.cell.nml"/>
+    <Include file="RIBL.cell.nml"/>
+    <Include file="RIBR.cell.nml"/>
+    <Include file="RICL.cell.nml"/>
+    <Include file="RICR.cell.nml"/>
+    <Include file="RID.cell.nml"/>
+    <Include file="RIFL.cell.nml"/>
+    <Include file="RIFR.cell.nml"/>
+    <Include file="RIGL.cell.nml"/>
+    <Include file="RIGR.cell.nml"/>
+    <Include file="RIH.cell.nml"/>
+    <Include file="RIML.cell.nml"/>
+    <Include file="RIMR.cell.nml"/>
+    <Include file="RIPL.cell.nml"/>
+    <Include file="RIPR.cell.nml"/>
+    <Include file="RIR.cell.nml"/>
+    <Include file="RIS.cell.nml"/>
+    <Include file="RIVL.cell.nml"/>
+    <Include file="RIVR.cell.nml"/>
+    <Include file="RMDDL.cell.nml"/>
+    <Include file="RMDDR.cell.nml"/>
+    <Include file="RMDL.cell.nml"/>
+    <Include file="RMDR.cell.nml"/>
+    <Include file="RMDVL.cell.nml"/>
+    <Include file="RMDVR.cell.nml"/>
+    <Include file="RMED.cell.nml"/>
+    <Include file="RMEL.cell.nml"/>
+    <Include file="RMER.cell.nml"/>
+    <Include file="RMEV.cell.nml"/>
+    <Include file="RMFL.cell.nml"/>
+    <Include file="RMFR.cell.nml"/>
+    <Include file="RMGL.cell.nml"/>
+    <Include file="RMGR.cell.nml"/>
+    <Include file="RMHL.cell.nml"/>
+    <Include file="RMHR.cell.nml"/>
+    <Include file="SAADL.cell.nml"/>
+    <Include file="SAADR.cell.nml"/>
+    <Include file="SAAVL.cell.nml"/>
+    <Include file="SAAVR.cell.nml"/>
+    <Include file="SABD.cell.nml"/>
+    <Include file="SABVL.cell.nml"/>
+    <Include file="SABVR.cell.nml"/>
+    <Include file="SDQL.cell.nml"/>
+    <Include file="SDQR.cell.nml"/>
+    <Include file="SIADL.cell.nml"/>
+    <Include file="SIADR.cell.nml"/>
+    <Include file="SIAVL.cell.nml"/>
+    <Include file="SIAVR.cell.nml"/>
+    <Include file="SIBDL.cell.nml"/>
+    <Include file="SIBDR.cell.nml"/>
+    <Include file="SIBVL.cell.nml"/>
+    <Include file="SIBVR.cell.nml"/>
+    <Include file="SMBDL.cell.nml"/>
+    <Include file="SMBDR.cell.nml"/>
+    <Include file="SMBVL.cell.nml"/>
+    <Include file="SMBVR.cell.nml"/>
+    <Include file="SMDDL.cell.nml"/>
+    <Include file="SMDDR.cell.nml"/>
+    <Include file="SMDVL.cell.nml"/>
+    <Include file="SMDVR.cell.nml"/>
+    <Include file="URADL.cell.nml"/>
+    <Include file="URADR.cell.nml"/>
+    <Include file="URAVL.cell.nml"/>
+    <Include file="URAVR.cell.nml"/>
+    <Include file="URBL.cell.nml"/>
+    <Include file="URBR.cell.nml"/>
+    <Include file="URXL.cell.nml"/>
+    <Include file="URXR.cell.nml"/>
+    <Include file="URYDL.cell.nml"/>
+    <Include file="URYDR.cell.nml"/>
+    <Include file="URYVL.cell.nml"/>
+    <Include file="URYVR.cell.nml"/>
+    <Include file="VA1.cell.nml"/>
+    <Include file="VA10.cell.nml"/>
+    <Include file="VA11.cell.nml"/>
+    <Include file="VA12.cell.nml"/>
+    <Include file="VA2.cell.nml"/>
+    <Include file="VA3.cell.nml"/>
+    <Include file="VA4.cell.nml"/>
+    <Include file="VA5.cell.nml"/>
+    <Include file="VA6.cell.nml"/>
+    <Include file="VA7.cell.nml"/>
+    <Include file="VA8.cell.nml"/>
+    <Include file="VA9.cell.nml"/>
+    <Include file="VB1.cell.nml"/>
+    <Include file="VB10.cell.nml"/>
+    <Include file="VB11.cell.nml"/>
+    <Include file="VB2.cell.nml"/>
+    <Include file="VB3.cell.nml"/>
+    <Include file="VB4.cell.nml"/>
+    <Include file="VB5.cell.nml"/>
+    <Include file="VB6.cell.nml"/>
+    <Include file="VB7.cell.nml"/>
+    <Include file="VB8.cell.nml"/>
+    <Include file="VB9.cell.nml"/>
+    <Include file="VC1.cell.nml"/>
+    <Include file="VC2.cell.nml"/>
+    <Include file="VC3.cell.nml"/>
+    <Include file="VC4.cell.nml"/>
+    <Include file="VC5.cell.nml"/>
+    <Include file="VC6.cell.nml"/>
+    <Include file="VD1.cell.nml"/>
+    <Include file="VD10.cell.nml"/>
+    <Include file="VD11.cell.nml"/>
+    <Include file="VD12.cell.nml"/>
+    <Include file="VD13.cell.nml"/>
+    <Include file="VD2.cell.nml"/>
+    <Include file="VD3.cell.nml"/>
+    <Include file="VD4.cell.nml"/>
+    <Include file="VD5.cell.nml"/>
+    <Include file="VD6.cell.nml"/>
+    <Include file="VD7.cell.nml"/>
+    <Include file="VD8.cell.nml"/>
+    <Include file="VD9.cell.nml"/>
+    <Include file="i1l_stim.nml"/>
     <Include file="i1r_stim.nml"/>
     <Include file="i2l_stim.nml"/>
     <Include file="i2r_stim.nml"/>
 
-    <!-- Input List definitions for stimuli -->
     
     <InputList id="input_i1l_stim" component="i1l_stim" population="I1L">
         <input id="0" target="../I1L/0/I1L" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i1r_stim" component="i1r_stim" population="I1R">
         <input id="0" target="../I1R/0/I1R" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i2l_stim" component="i2l_stim" population="I2L">
         <input id="0" target="../I2L/0/I2L" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i2r_stim" component="i2r_stim" population="I2R">
         <input id="0" target="../I2R/0/I2R" destination="synapses"/>
     </InputList>
-
-    
-    <Simulation id="Sim_CellsOnly_oscillation_test" length="500ms" step="0.025ms" target="CellsOnly">
-        
-        <!-- Display: Voltages -->
-        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="0" xmax="500" ymin="-80" ymax="40">
-            
+    <Simulation id="Sim_CellsOnly_oscillation_test" length="500.0ms" step="0.025ms" target="CellsOnly" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
+        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="-50.0" xmax="550.0" ymin="-80" ymax="40">
             <Line id="M1_v" quantity="M1/0/M1/v" scale="1mV" color="#ff0000" timeScale="1ms"/>
             <Line id="M2L_v" quantity="M2L/0/M2L/v" scale="1mV" color="#00ff00" timeScale="1ms"/>
             <Line id="M2R_v" quantity="M2R/0/M2R/v" scale="1mV" color="#0000ff" timeScale="1ms"/>
@@ -44,28 +342,26 @@
             <Line id="M4_v" quantity="M4/0/M4/v" scale="1mV" color="#ffff00" timeScale="1ms"/>
             <Line id="M5_v" quantity="M5/0/M5/v" scale="1mV" color="#990099" timeScale="1ms"/>
         </Display>
-        
-        <!-- Output file -->
+
         <OutputFile id="output_voltages" fileName="CellsOnly_voltages.dat">
-            
-            <Column id="M1_v" quantity="M1/0/M1/v"/>
-            <Column id="M2L_v" quantity="M2L/0/M2L/v"/>
-            <Column id="M2R_v" quantity="M2R/0/M2R/v"/>
-            <Column id="M3L_v" quantity="M3L/0/M3L/v"/>
-            <Column id="M3R_v" quantity="M3R/0/M3R/v"/>
-            <Column id="M4_v" quantity="M4/0/M4/v"/>
-            <Column id="M5_v" quantity="M5/0/M5/v"/>
-            <Column id="I1L_v" quantity="I1L/0/I1L/v"/>
-            <Column id="I1R_v" quantity="I1R/0/I1R/v"/>
-            <Column id="I2L_v" quantity="I2L/0/I2L/v"/>
-            <Column id="I2R_v" quantity="I2R/0/I2R/v"/>
-            <Column id="I3_v" quantity="I3/0/I3/v"/>
-            <Column id="I4_v" quantity="I4/0/I4/v"/>
-            <Column id="I5_v" quantity="I5/0/I5/v"/>
-            <Column id="I6_v" quantity="I6/0/I6/v"/>
-            <Column id="MI_v" quantity="MI/0/MI/v"/>
+            <OutputColumn id="M1_v" quantity="M1/0/M1/v"/>
+            <OutputColumn id="M2L_v" quantity="M2L/0/M2L/v"/>
+            <OutputColumn id="M2R_v" quantity="M2R/0/M2R/v"/>
+            <OutputColumn id="M3L_v" quantity="M3L/0/M3L/v"/>
+            <OutputColumn id="M3R_v" quantity="M3R/0/M3R/v"/>
+            <OutputColumn id="M4_v" quantity="M4/0/M4/v"/>
+            <OutputColumn id="M5_v" quantity="M5/0/M5/v"/>
+            <OutputColumn id="I1L_v" quantity="I1L/0/I1L/v"/>
+            <OutputColumn id="I1R_v" quantity="I1R/0/I1R/v"/>
+            <OutputColumn id="I2L_v" quantity="I2L/0/I2L/v"/>
+            <OutputColumn id="I2R_v" quantity="I2R/0/I2R/v"/>
+            <OutputColumn id="I3_v" quantity="I3/0/I3/v"/>
+            <OutputColumn id="I4_v" quantity="I4/0/I4/v"/>
+            <OutputColumn id="I5_v" quantity="I5/0/I5/v"/>
+            <OutputColumn id="I6_v" quantity="I6/0/I6/v"/>
+            <OutputColumn id="MI_v" quantity="MI/0/MI/v"/>
         </OutputFile>
-    
+
     </Simulation>
 
 </Lems>

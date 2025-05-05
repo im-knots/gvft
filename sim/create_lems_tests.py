@@ -80,87 +80,95 @@ def create_oscillation_test(neuroml_file, duration=500, dt=0.025,
             
             print(f"Created pulse generator file: {pg_filename}")
         
-        # Create the LEMS simulation file directly
-        lems_file = f"LEMS_{simulation_id}.xml"
-        
-        # Create input list XML for connecting stimuli to cells
-        input_list_xml = ""
-        for cell in stim_cells:
-            pg_id = f"{cell.lower()}_stim"
-            input_list_xml += f"""
-    <InputList id="input_{pg_id}" component="{pg_id}" population="{cell}">
-        <input id="0" target="../{cell}/0/{cell}" destination="synapses"/>
-    </InputList>
-"""
-        
         # Define colors for visualization
         colors = ["#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#00ffff", "#ffff00", "#990099"]
         
         # Motor neuron populations to monitor
         motor_neurons = ["M1", "M2L", "M2R", "M3L", "M3R", "M4", "M5"]
         
-        # Create display line XML
-        display_lines_xml = ""
+        # Create the LEMS simulation file using PyNeuroML API
+        lems_file = f"LEMS_{simulation_id}.xml"
+        
+        # Use the PyNeuroML API to create the LEMS file
+        # The LEMSSimulation constructor takes simulation_id, duration, timestep, target, and seed
+        simulation = LEMSSimulation(simulation_id, duration, dt, network_id, "12345")
+        
+        # Include the NeuroML model file
+        simulation.include_neuroml2_file(neuroml_filename)
+        
+        # Include the generated pulse generator files
+        for pg_file in stimulus_files:
+            simulation.include_neuroml2_file(pg_file)
+        
+        # Create a display for visualizing membrane potentials
+        simulation.create_display("display_voltages", "Membrane Potentials", "-80", "40")
+        
+        # Add motor neuron traces to display
         for i, neuron in enumerate(motor_neurons):
             color = colors[i % len(colors)]
-            display_lines_xml += f"""
-            <Line id="{neuron}_v" quantity="{neuron}/0/{neuron}/v" scale="1mV" color="{color}" timeScale="1ms"/>"""
+            simulation.add_line_to_display("display_voltages", f"{neuron}_v", f"{neuron}/0/{neuron}/v", "1mV", color)
         
-        # Create output column XML for all neurons to monitor
-        output_columns_xml = ""
+        # Create output file for data
+        simulation.create_output_file("output_voltages", f"{base_name}_voltages.dat")
         
+        # Add outputs for different neuron types
         # Motor neurons
         for neuron in motor_neurons:
-            output_columns_xml += f"""
-            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
+            simulation.add_column_to_output_file("output_voltages", f"{neuron}_v", f"{neuron}/0/{neuron}/v")
         
         # Sensory neurons
         for neuron in ["I1L", "I1R", "I2L", "I2R"]:
-            output_columns_xml += f"""
-            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
+            simulation.add_column_to_output_file("output_voltages", f"{neuron}_v", f"{neuron}/0/{neuron}/v")
         
         # Interneurons
         for neuron in ["I3", "I4", "I5", "I6", "MI"]:
-            output_columns_xml += f"""
-            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
+            simulation.add_column_to_output_file("output_voltages", f"{neuron}_v", f"{neuron}/0/{neuron}/v")
         
-        # Create the complete LEMS file content
-        lems_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Lems>
-
-    <Target component="{simulation_id}"/>
-
-    <Include file="Simulation.xml"/>
-    <Include file="{neuroml_filename}"/>
-    
-    <!-- Include the pulse generator files -->
-    {chr(10).join(['    <Include file="' + file + '"/>' for file in stimulus_files])}
-
-    <!-- Input List definitions for stimuli -->
-    {input_list_xml}
-    
-    <Simulation id="{simulation_id}" length="{duration}ms" step="{dt}ms" target="{network_id}">
+        # We need to create InputLists manually, but the API doesn't have a direct method for this
+        # We'll generate the complete input list manually after creating the core LEMS file
         
-        <!-- Display: Voltages -->
-        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="0" xmax="{duration}" ymin="-80" ymax="40">
-            {display_lines_xml}
-        </Display>
+        # Save the initial version of the LEMS file
+        lems_file_temp = simulation.save_to_file()
         
-        <!-- Output file -->
-        <OutputFile id="output_voltages" fileName="{base_name}_voltages.dat">
-            {output_columns_xml}
-        </OutputFile>
-    
-    </Simulation>
-
-</Lems>
-"""
+        # Now we need to manually add the InputList elements for the stimuli
+        # Read the saved file
+        with open(lems_file_temp, 'r') as f:
+            lems_content = f.read()
         
-        # Write the LEMS file
+        # Find the position to insert InputList elements - right before the Simulation element
+        simulation_pos = lems_content.find("<Simulation ")
+        if simulation_pos == -1:
+            print("Warning: Could not find Simulation element in LEMS file. InputLists may not be added correctly.")
+            simulation_pos = lems_content.find("</Target>") + 10  # Default position after Target
+        
+        # Generate InputList XML for each stimulus
+        input_list_xml = ""
+        for cell in stim_cells:
+            pg_id = f"{cell.lower()}_stim"
+            input_list_xml += f"""
+    <InputList id="input_{pg_id}" component="{pg_id}" population="{cell}">
+        <input id="0" target="../{cell}/0/{cell}" destination="synapses"/>
+    </InputList>"""
+        
+        # Insert InputList elements into the LEMS file content
+        modified_lems_content = lems_content[:simulation_pos] + input_list_xml + "\n    " + lems_content[simulation_pos:]
+        
+        # Write the modified content back to the file
         with open(lems_file, 'w') as f:
-            f.write(lems_content)
+            f.write(modified_lems_content)
         
         print(f"Created LEMS file: {lems_file}")
+        
+        # Validate the file with PyNeuroML
+        print("Validating LEMS file...")
+        try:
+            validate_result = pynml.validate_lems_file(lems_file)
+            if validate_result:
+                print("LEMS file validation successful!")
+            else:
+                print("WARNING: LEMS file validation failed. Manual validation recommended.")
+        except Exception as validate_error:
+            print(f"Error during validation: {validate_error}")
         
         # Change back to the original directory
         os.chdir(original_dir)

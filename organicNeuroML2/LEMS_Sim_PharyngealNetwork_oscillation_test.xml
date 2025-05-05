@@ -1,41 +1,61 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <Lems>
 
+    <!-- 12345 -->
+
+    <!-- Specify which component to run -->
     <Target component="Sim_PharyngealNetwork_oscillation_test"/>
 
+    <!-- Include core NeuroML2 ComponentType definitions -->
+    <Include file="Cells.xml"/>
+    <Include file="Networks.xml"/>
     <Include file="Simulation.xml"/>
+
     <Include file="PharyngealNetwork.net.nml"/>
-    
-    <!-- Include the pulse generator files -->
-        <Include file="i1l_stim.nml"/>
+    <Include file="Acetylcholine.synapse.nml"/>
+    <Include file="Generic_GJ.nml"/>
+    <Include file="Glutamate.synapse.nml"/>
+    <Include file="I1L.cell.nml"/>
+    <Include file="LeakConductance.channel.nml"/>
+    <Include file="I1R.cell.nml"/>
+    <Include file="I2L.cell.nml"/>
+    <Include file="I2R.cell.nml"/>
+    <Include file="I3.cell.nml"/>
+    <Include file="I4.cell.nml"/>
+    <Include file="I5.cell.nml"/>
+    <Include file="I6.cell.nml"/>
+    <Include file="M1.cell.nml"/>
+    <Include file="M2L.cell.nml"/>
+    <Include file="M2R.cell.nml"/>
+    <Include file="M3L.cell.nml"/>
+    <Include file="M3R.cell.nml"/>
+    <Include file="M4.cell.nml"/>
+    <Include file="M5.cell.nml"/>
+    <Include file="MCL.cell.nml"/>
+    <Include file="MCR.cell.nml"/>
+    <Include file="MI.cell.nml"/>
+    <Include file="NSML.cell.nml"/>
+    <Include file="NSMR.cell.nml"/>
+    <Include file="Serotonin_Glutamate.synapse.nml"/>
+    <Include file="i1l_stim.nml"/>
     <Include file="i1r_stim.nml"/>
     <Include file="i2l_stim.nml"/>
     <Include file="i2r_stim.nml"/>
 
-    <!-- Input List definitions for stimuli -->
     
     <InputList id="input_i1l_stim" component="i1l_stim" population="I1L">
         <input id="0" target="../I1L/0/I1L" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i1r_stim" component="i1r_stim" population="I1R">
         <input id="0" target="../I1R/0/I1R" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i2l_stim" component="i2l_stim" population="I2L">
         <input id="0" target="../I2L/0/I2L" destination="synapses"/>
     </InputList>
-
     <InputList id="input_i2r_stim" component="i2r_stim" population="I2R">
         <input id="0" target="../I2R/0/I2R" destination="synapses"/>
     </InputList>
-
-    
-    <Simulation id="Sim_PharyngealNetwork_oscillation_test" length="500ms" step="0.025ms" target="PharyngealNetwork">
-        
-        <!-- Display: Voltages -->
-        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="0" xmax="500" ymin="-80" ymax="40">
-            
+    <Simulation id="Sim_PharyngealNetwork_oscillation_test" length="500.0ms" step="0.025ms" target="PharyngealNetwork" seed="12345">  <!-- Note seed: ensures same random numbers used every run -->
+        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="-50.0" xmax="550.0" ymin="-80" ymax="40">
             <Line id="M1_v" quantity="M1/0/M1/v" scale="1mV" color="#ff0000" timeScale="1ms"/>
             <Line id="M2L_v" quantity="M2L/0/M2L/v" scale="1mV" color="#00ff00" timeScale="1ms"/>
             <Line id="M2R_v" quantity="M2R/0/M2R/v" scale="1mV" color="#0000ff" timeScale="1ms"/>
@@ -44,28 +64,26 @@
             <Line id="M4_v" quantity="M4/0/M4/v" scale="1mV" color="#ffff00" timeScale="1ms"/>
             <Line id="M5_v" quantity="M5/0/M5/v" scale="1mV" color="#990099" timeScale="1ms"/>
         </Display>
-        
-        <!-- Output file -->
+
         <OutputFile id="output_voltages" fileName="PharyngealNetwork_voltages.dat">
-            
-            <Column id="M1_v" quantity="M1/0/M1/v"/>
-            <Column id="M2L_v" quantity="M2L/0/M2L/v"/>
-            <Column id="M2R_v" quantity="M2R/0/M2R/v"/>
-            <Column id="M3L_v" quantity="M3L/0/M3L/v"/>
-            <Column id="M3R_v" quantity="M3R/0/M3R/v"/>
-            <Column id="M4_v" quantity="M4/0/M4/v"/>
-            <Column id="M5_v" quantity="M5/0/M5/v"/>
-            <Column id="I1L_v" quantity="I1L/0/I1L/v"/>
-            <Column id="I1R_v" quantity="I1R/0/I1R/v"/>
-            <Column id="I2L_v" quantity="I2L/0/I2L/v"/>
-            <Column id="I2R_v" quantity="I2R/0/I2R/v"/>
-            <Column id="I3_v" quantity="I3/0/I3/v"/>
-            <Column id="I4_v" quantity="I4/0/I4/v"/>
-            <Column id="I5_v" quantity="I5/0/I5/v"/>
-            <Column id="I6_v" quantity="I6/0/I6/v"/>
-            <Column id="MI_v" quantity="MI/0/MI/v"/>
+            <OutputColumn id="M1_v" quantity="M1/0/M1/v"/>
+            <OutputColumn id="M2L_v" quantity="M2L/0/M2L/v"/>
+            <OutputColumn id="M2R_v" quantity="M2R/0/M2R/v"/>
+            <OutputColumn id="M3L_v" quantity="M3L/0/M3L/v"/>
+            <OutputColumn id="M3R_v" quantity="M3R/0/M3R/v"/>
+            <OutputColumn id="M4_v" quantity="M4/0/M4/v"/>
+            <OutputColumn id="M5_v" quantity="M5/0/M5/v"/>
+            <OutputColumn id="I1L_v" quantity="I1L/0/I1L/v"/>
+            <OutputColumn id="I1R_v" quantity="I1R/0/I1R/v"/>
+            <OutputColumn id="I2L_v" quantity="I2L/0/I2L/v"/>
+            <OutputColumn id="I2R_v" quantity="I2R/0/I2R/v"/>
+            <OutputColumn id="I3_v" quantity="I3/0/I3/v"/>
+            <OutputColumn id="I4_v" quantity="I4/0/I4/v"/>
+            <OutputColumn id="I5_v" quantity="I5/0/I5/v"/>
+            <OutputColumn id="I6_v" quantity="I6/0/I6/v"/>
+            <OutputColumn id="MI_v" quantity="MI/0/MI/v"/>
         </OutputFile>
-    
+
     </Simulation>
 
 </Lems>
