@@ -9,11 +9,12 @@ This is a heavily work in progress and unpolished repo im working on as a fun si
 Imagine trying to design a brain—not by hand-crafting every connection, but by drawing invisible winds that tell neurons where to grow and how to talk to each other. GVFT is like using weather maps to design neural networks. Instead of building brains with wires and blueprints, we use fields—smooth shapes that guide how neurons connect. These fields describe things like: who should talk to who, how strong the messages are, how fast they travel, and what mood the brain is in. We start with a real worm brain (from NeuroML) and turn it into fields. Then we let those fields evolve—like watching weather patterns shift over time. Finally, we convert those evolved fields back into a simulated brain and check if it still behaves like a real one. The big idea? We're not drawing a map of the brain. We're drawing the rules for how the brain builds itself.
 
 ## Figures
-### Phase diagram from pram sweep with biological priors and param ranges discovered from wider sweeps
-![multi metric phase diagram]([https://github.com/im-knots/gvft/raw/main/sim/my_image.png](https://github.com/im-knots/gvft/blob/main/figures/multi_metric_phase_diagrams_bio_prior_final_grid200.png))
+
+### Phase diagram from param sweep with biological priors and param ranges discovered from wider sweeps
+<img src="https://github.com/im-knots/gvft/raw/main/figures/multi_metric_phase_diagrams_bio_prior_final_grid200.png" alt="multi metric phase diagram" width="100%"/>
 
 ### Selected full gvft evolution simulation with biological priors
-![multi metric phase diagram]([[https://github.com/im-knots/gvft/raw/main/sim/my_image.png](https://github.com/im-knots/gvft/blob/main/figures/multi_metric_phase_diagrams_bio_prior_final_grid200.png)](https://github.com/im-knots/gvft/blob/main/figures/simulation_bio_prior_lamW_0.144_DF_0.033_etacoeff_0.050_grid200.png))
+<img src="https://github.com/im-knots/gvft/raw/main/figures/simulation_bio_prior_lamW_0.144_DF_0.033_etacoeff_0.050_grid200.png" alt="GVFT evolution simulation" width="100%"/>
 
 
 ## Experimental Methodology
