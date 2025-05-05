@@ -61,7 +61,7 @@ This multi-pronged approach lets us both explore GVFT's generative potential and
 
 ### TODO: Seclected neural simulation data visualizations
 
-## Local Env setup
+## Local Setup
 ```bash
 python3 -m venv gvft-env
 source gvft-env/bin/activate 
