@@ -17,7 +17,7 @@ Imagine trying to design a brain—not by hand-crafting every connection, but by
 - LEM simulation file to NEURON simulation
 
 ## TODO
-- FIX: Issue with input and output cells in simulation not getting any inputs.
+- FIX: Issue with input and output cells in NEURON simulation not getting any inputs.
 
 
 ## Experimental Methodology
