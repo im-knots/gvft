@@ -8,6 +8,7 @@ import os
 import sys
 import glob
 from pyneuroml.lems import LEMSSimulation
+from pyneuroml import pynml
 
 def create_oscillation_test(neuroml_file, duration=500, dt=0.025, 
                            stim_amplitude=0.5, stim_delay=50, stim_duration=400):
@@ -52,59 +53,114 @@ def create_oscillation_test(neuroml_file, duration=500, dt=0.025,
         original_dir = os.getcwd()
         os.chdir(neuroml_dir)
         
-        # Create the LEMS simulation
-        sim = LEMSSimulation(simulation_id, duration, dt, network_id)
+        # First, generate pulse generator NeuroML files manually
+        # We'll create a separate file for each stimulus
+        stimulus_files = []
+        stim_cells = ["I1L", "I1R", "I2L", "I2R"]
         
-        # Include the network file - use just the filename, not the full path
-        # since we're now in the same directory
-        sim.include_neuroml2_file(neuroml_filename)
+        for cell in stim_cells:
+            pg_id = f"{cell.lower()}_stim"
+            pg_filename = f"{pg_id}.nml"
+            stimulus_files.append(pg_filename)
+            
+            # Create NeuroML pulse generator file content
+            pg_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<neuroml xmlns="http://www.neuroml.org/schema/neuroml2"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.neuroml.org/schema/neuroml2 https://raw.github.com/NeuroML/NeuroML2/development/Schemas/NeuroML2/NeuroML_v2beta4.xsd"
+         id="{pg_id}">
+    
+    <pulseGenerator id="{pg_id}" delay="{stim_delay}ms" duration="{stim_duration}ms" amplitude="{stim_amplitude}nA"/>
+    
+</neuroml>
+"""
+            # Write to file
+            with open(pg_filename, 'w') as f:
+                f.write(pg_content)
+            
+            print(f"Created pulse generator file: {pg_filename}")
         
-        # Define a current pulse stimulus for multiple sensory neurons
-        # I1 neurons (left and right)
-        sim.add_current_input("i1l_stim", stim_amplitude, stim_delay, stim_duration, "I1L", "0")
-        sim.add_current_input("i1r_stim", stim_amplitude, stim_delay, stim_duration, "I1R", "0")
+        # Create the LEMS simulation file directly
+        lems_file = f"LEMS_{simulation_id}.xml"
         
-        # I2 neurons (left and right)
-        sim.add_current_input("i2l_stim", stim_amplitude, stim_delay, stim_duration, "I2L", "0")
-        sim.add_current_input("i2r_stim", stim_amplitude, stim_delay, stim_duration, "I2R", "0")
-        
-        # Create a display for visualizing the membrane potentials
-        display_id = "display_voltages"
-        sim.create_display(display_id, "Membrane Potentials", "-80", "40")
-        
-        # Motor neuron populations to monitor
-        motor_neurons = ["M1", "M2L", "M2R", "M3L", "M3R", "M4", "M5"]
+        # Create input list XML for connecting stimuli to cells
+        input_list_xml = ""
+        for cell in stim_cells:
+            pg_id = f"{cell.lower()}_stim"
+            input_list_xml += f"""
+    <InputList id="input_{pg_id}" component="{pg_id}" population="{cell}">
+        <input id="0" target="../{cell}/0/{cell}" destination="synapses"/>
+    </InputList>
+"""
         
         # Define colors for visualization
         colors = ["#ff0000", "#00ff00", "#0000ff", "#ff00ff", "#00ffff", "#ffff00", "#990099"]
         
-        # Add motor neurons to display
+        # Motor neuron populations to monitor
+        motor_neurons = ["M1", "M2L", "M2R", "M3L", "M3R", "M4", "M5"]
+        
+        # Create display line XML
+        display_lines_xml = ""
         for i, neuron in enumerate(motor_neurons):
             color = colors[i % len(colors)]
-            sim.add_line_to_display(display_id, f"{neuron}_v", f"{neuron}/0/{neuron}/v", "1mV", color)
+            display_lines_xml += f"""
+            <Line id="{neuron}_v" quantity="{neuron}/0/{neuron}/v" scale="1mV" color="{color}" timeScale="1ms"/>"""
         
-        # Create output file for data analysis
-        output_id = "output_voltages"
-        output_file = f"{base_name}_voltages.dat"
-        sim.create_output_file(output_id, output_file)
+        # Create output column XML for all neurons to monitor
+        output_columns_xml = ""
         
-        # Add columns to output file - motor neurons
+        # Motor neurons
         for neuron in motor_neurons:
-            sim.add_column_to_output_file(output_id, f"{neuron}_v", f"{neuron}/0/{neuron}/v")
+            output_columns_xml += f"""
+            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
         
-        # Also monitor sensory neurons
-        sensory_neurons = ["I1L", "I1R", "I2L", "I2R"]
-        for neuron in sensory_neurons:
-            sim.add_column_to_output_file(output_id, f"{neuron}_v", f"{neuron}/0/{neuron}/v")
+        # Sensory neurons
+        for neuron in ["I1L", "I1R", "I2L", "I2R"]:
+            output_columns_xml += f"""
+            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
         
-        # Interneurons are also interesting to monitor
-        interneurons = ["I3", "I4", "I5", "I6", "MI"]
-        for neuron in interneurons:
-            sim.add_column_to_output_file(output_id, f"{neuron}_v", f"{neuron}/0/{neuron}/v")
+        # Interneurons
+        for neuron in ["I3", "I4", "I5", "I6", "MI"]:
+            output_columns_xml += f"""
+            <Column id="{neuron}_v" quantity="{neuron}/0/{neuron}/v"/>"""
         
-        # Save LEMS file in the same directory as the NeuroML file
-        lems_file = f"LEMS_{simulation_id}.xml"
-        sim.save_to_file(lems_file)
+        # Create the complete LEMS file content
+        lems_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<Lems>
+
+    <Target component="{simulation_id}"/>
+
+    <Include file="Simulation.xml"/>
+    <Include file="{neuroml_filename}"/>
+    
+    <!-- Include the pulse generator files -->
+    {chr(10).join(['    <Include file="' + file + '"/>' for file in stimulus_files])}
+
+    <!-- Input List definitions for stimuli -->
+    {input_list_xml}
+    
+    <Simulation id="{simulation_id}" length="{duration}ms" step="{dt}ms" target="{network_id}">
+        
+        <!-- Display: Voltages -->
+        <Display id="display_voltages" title="Membrane Potentials" timeScale="1ms" xmin="0" xmax="{duration}" ymin="-80" ymax="40">
+            {display_lines_xml}
+        </Display>
+        
+        <!-- Output file -->
+        <OutputFile id="output_voltages" fileName="{base_name}_voltages.dat">
+            {output_columns_xml}
+        </OutputFile>
+    
+    </Simulation>
+
+</Lems>
+"""
+        
+        # Write the LEMS file
+        with open(lems_file, 'w') as f:
+            f.write(lems_content)
+        
+        print(f"Created LEMS file: {lems_file}")
         
         # Change back to the original directory
         os.chdir(original_dir)
