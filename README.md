@@ -8,6 +8,29 @@ This is a heavily work in progress and unpolished repo im working on as a fun si
 ## ELI5 
 Imagine trying to design a brain—not by hand-crafting every connection, but by drawing invisible winds that tell neurons where to grow and how to talk to each other. GVFT is like using weather maps to design neural networks. Instead of building brains with wires and blueprints, we use fields—smooth shapes that guide how neurons connect. These fields describe things like: who should talk to who, how strong the messages are, how fast they travel, and what mood the brain is in. We start with a real worm brain (from NeuroML) and turn it into fields. Then we let those fields evolve—like watching weather patterns shift over time. Finally, we convert those evolved fields back into a simulated brain and check if it still behaves like a real one. The big idea? We're not drawing a map of the brain. We're drawing the rules for how the brain builds itself.
 
+## Experimental Methodology
+
+We’re testing GVFT through two experimental pipelines:
+
+### 1. **Synthetic Field Simulation (Exploratory Regime)**
+- We randomly initialize GVFT fields and evolve them over time using reaction-diffusion dynamics.
+- These simulations help us understand how stable, structured patterns (like Turing patterns) emerge.
+- By sweeping across parameters, we identify regions of the field space that support structured and persistent dynamics.
+
+### 2. **Biologically Grounded Loop (Validation Regime)**
+- We start with a real-world connectome (e.g. the *C. elegans* pharyngeal network in NeuroML2).
+- This connectome is converted into GVFT fields, effectively "compressing" it into a spatial field representation.
+- The fields are then evolved and re-expanded back into a new neural graph.
+- This new network is converted back into NeuroML2 and simulated using NEURON via pyNeuroML.
+- We stimulate it and observe whether the evolved architecture shows biologically plausible behavior (e.g. oscillations, persistent activity).
+
+### Comparison with Baseline Neural Dynamics
+- We run parallel NEURON simulations on both the original biological connectome and the GVFT-evolved version.
+- We measure neural activity metrics such as membrane potential traces, frequency spectra, and synchrony.
+- If the GVFT-evolved network exhibits oscillations or coherent activity patterns similar to the original, it supports the claim that GVFT preserves or re-discovers key dynamical motifs.
+- If differences arise, we analyze whether they are noise, loss of function, or potentially novel stable regimes.
+
+This dual approach lets us both explore GVFT's theoretical landscape and validate its biological relevance.
 
 
 ## FUNCTIONAL FEATURES
