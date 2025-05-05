@@ -11,7 +11,7 @@ Imagine trying to design a brain—not by hand-crafting every connection, but by
 ## FUNCTIONAL FEATURES
 - neuroml file input as biological priors
 - gvft field input from flat or randomized priors
-- gvft field interation/evolution simulation engine
+- gvft field interaction/evolution simulation engine
 - gfvt field to neuroml instantiation
 - neuroml to LEM simulation file
 - LEM simulation file to NEURON simulation
