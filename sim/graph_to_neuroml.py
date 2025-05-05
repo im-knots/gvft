@@ -1,4 +1,3 @@
-import networkx as nx
 import numpy as np
 import os
 import json
@@ -17,14 +16,16 @@ class GraphToNeuroML:
     nervous system conventions, matching the format in PharyngealNetwork.net.nml.
     """
     
-    def __init__(self, original_network=None):
+    def __init__(self, original_network=None, reference_neuroml_file=None):
         """
         Initialize the converter with an optional original network for reference.
         
         Args:
             original_network (nx.Graph, optional): Original reference network
+            reference_neuroml_file (str, optional): Path to reference NeuroML file with muscle definitions
         """
         self.original_network = original_network
+        self.reference_neuroml_file = reference_neuroml_file
         
         # Pharyngeal neuron classes with their prefixes
         # Based on C. elegans pharyngeal nervous system
@@ -35,6 +36,12 @@ class GraphToNeuroML:
             'MI': ['MI'],  # Interneurons (motor-interneurons)
             'NSM': ['NSML', 'NSMR']  # Neuromodulatory/Serotonergic
         }
+
+        # Pharyngeal muscle classes
+        self.muscle_classes = [
+            'pm1', 'pm2L', 'pm2R', 'pm3L', 'pm3R', 'pm4L', 'pm4R',
+            'pm5L', 'pm5R', 'pm6L', 'pm6R', 'pm7L', 'pm7R', 'pm8'
+        ]
         
         # Flatten all possible neuron types
         self.all_neuron_types = []
@@ -110,9 +117,162 @@ class GraphToNeuroML:
             ("I4", "SMBVL", "incoming", "Acetylcholine"),
             ("I4", "SMBVR", "incoming", "Acetylcholine")
         ]
+
+        # Define standard neuromuscular connections based on C. elegans data
+        # Format: (motor_neuron, muscle, synapse_type)
+        self.neuromuscular_connections = [
+            ("M1", "pm3L", "Acetylcholine"),
+            ("M1", "pm3R", "Acetylcholine"),
+            ("M1", "pm4L", "Acetylcholine"),
+            ("M1", "pm4R", "Acetylcholine"),
+            ("M2L", "pm4L", "Acetylcholine"),
+            ("M2L", "pm5L", "Acetylcholine"),
+            ("M2R", "pm4R", "Acetylcholine"),
+            ("M2R", "pm5R", "Acetylcholine"),
+            ("M3L", "pm6L", "Glutamate"),
+            ("M3R", "pm6R", "Glutamate"),
+            ("M4", "pm5L", "Acetylcholine"),
+            ("M4", "pm5R", "Acetylcholine"),
+            ("M5", "pm5L", "Acetylcholine"),
+            ("M5", "pm5R", "Acetylcholine"),
+            ("M5", "pm6L", "Acetylcholine"),
+            ("M5", "pm6R", "Acetylcholine"),
+            ("M5", "pm7L", "Acetylcholine"),
+            ("M5", "pm7R", "Acetylcholine"),
+            ("M5", "pm8", "Acetylcholine")
+        ]
+
+        # Define electrical connections between muscles (gap junctions)
+        # Format: (muscle1, muscle2) - the connection is bidirectional
+        self.muscle_gap_junctions = [
+            ("pm3L", "pm3R"),
+            ("pm4L", "pm4R"),
+            ("pm5L", "pm5R"),
+            ("pm6L", "pm6R"),
+            ("pm7L", "pm7R"),
+            ("pm4L", "pm5L"),
+            ("pm4R", "pm5R"),
+            ("pm5L", "pm6L"),
+            ("pm5R", "pm6R"),
+            ("pm6L", "pm7L"),
+            ("pm6R", "pm7R")
+        ]
+        
+        # Load muscle populations and connections if reference file is provided
+        self.reference_muscles = {}
+        self.reference_neuromuscular = []
+        self.reference_muscle_gap_junctions = []
+        if reference_neuroml_file and os.path.exists(reference_neuroml_file):
+            self._extract_muscle_data_from_reference()
         
         # Collect unique somatic neurons for includes
         self.somatic_neurons = sorted(list(set([conn[1] for conn in self.somatic_connections])))
+    
+    def _extract_muscle_data_from_reference(self):
+        """
+        Extract muscle data from the reference NeuroML file including:
+        - Muscle populations
+        - Neuromuscular connections
+        - Inter-muscle gap junctions
+        """
+        try:
+            print(f"Extracting muscle data from {self.reference_neuroml_file}")
+            parser = etree.XMLParser(remove_comments=True)
+            tree = etree.parse(self.reference_neuroml_file, parser)
+            root = tree.getroot()
+            
+            # Get the namespace
+            nsmap = root.nsmap
+            if None in nsmap:
+                ns = '{' + nsmap[None] + '}'
+            else:
+                ns = ''
+            
+            # Extract muscle populations
+            for population in root.findall(f".//{ns}population", namespaces=nsmap):
+                pop_id = population.get('id')
+                if pop_id in self.muscle_classes:
+                    self.reference_muscles[pop_id] = {
+                        'id': pop_id,
+                        'component': population.get('component', pop_id),
+                        'size': int(population.get('size', 1)),
+                        'positions': []
+                    }
+                    
+                    # Extract locations for instances
+                    for instance in population.findall(f".//{ns}instance", namespaces=nsmap):
+                        instance_id = instance.get('id')
+                        location = instance.find(f".//{ns}location", namespaces=nsmap)
+                        if location is not None:
+                            pos = (
+                                float(location.get('x', 0)),
+                                float(location.get('y', 0)),
+                                float(location.get('z', 0))
+                            )
+                            self.reference_muscles[pop_id]['positions'].append({
+                                'id': instance_id,
+                                'position': pos
+                            })
+            
+            # Extract neuromuscular connections
+            for projection in root.findall(f".//{ns}projection", namespaces=nsmap):
+                pre_pop = projection.get('presynapticPopulation')
+                post_pop = projection.get('postsynapticPopulation')
+                synapse = projection.get('synapse')
+                
+                # Check if this is a neuromuscular connection
+                if (pre_pop and post_pop and 
+                    ((pre_pop in self.all_neuron_types and post_pop in self.muscle_classes) or
+                     (pre_pop in self.muscle_classes and post_pop in self.all_neuron_types))):
+                    
+                    for connection in projection.findall(f".//{ns}connection", namespaces=nsmap):
+                        conn_id = connection.get('id')
+                        pre_cell = connection.get('preCellId', '').split('/')[-1]
+                        post_cell = connection.get('postCellId', '').split('/')[-1]
+                        
+                        self.reference_neuromuscular.append({
+                            'id': conn_id,
+                            'pre_pop': pre_pop,
+                            'post_pop': post_pop,
+                            'pre_cell': pre_cell,
+                            'post_cell': post_cell, 
+                            'synapse': synapse
+                        })
+            
+            # Extract muscle gap junctions
+            for el_projection in root.findall(f".//{ns}electricalProjection", namespaces=nsmap):
+                pre_pop = el_projection.get('presynapticPopulation')
+                post_pop = el_projection.get('postsynapticPopulation')
+                
+                # Check if this is between muscles
+                if pre_pop in self.muscle_classes and post_pop in self.muscle_classes:
+                    for el_connection in el_projection.findall(f".//{ns}electricalConnection", namespaces=nsmap):
+                        conn_id = el_connection.get('id')
+                        pre_cell = int(el_connection.get('preCell', 0))
+                        post_cell = int(el_connection.get('postCell', 0))
+                        
+                        self.reference_muscle_gap_junctions.append({
+                            'id': conn_id,
+                            'pre_pop': pre_pop,
+                            'post_pop': post_pop,
+                            'pre_cell': pre_cell,
+                            'post_cell': post_cell
+                        })
+            
+            # Print summary of extracted data
+            print(f"Extracted {len(self.reference_muscles)} muscle populations")
+            print(f"Extracted {len(self.reference_neuromuscular)} neuromuscular connections")
+            print(f"Extracted {len(self.reference_muscle_gap_junctions)} muscle gap junctions")
+            
+            # If no data was extracted, use the default connections
+            if not self.reference_neuromuscular:
+                print("No neuromuscular connections found in reference file. Using default connections.")
+            if not self.reference_muscle_gap_junctions:
+                print("No muscle gap junctions found in reference file. Using default connections.")
+                
+        except Exception as e:
+            print(f"Error extracting muscle data from reference: {e}")
+            print("Using default muscle configurations instead.")
     
     def compute_network_metrics(self, G):
         """
@@ -453,11 +613,6 @@ class GraphToNeuroML:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         notes.text = f"NeuroML2 network generated from GVFT simulation on {timestamp}\n"
         
-        # Include references to the somatic neurons needed for interface
-        for neuron in self.somatic_neurons:
-            # Note that these includes assume the cell definitions exist in the same directory
-            etree.SubElement(neuroml, "include", href=f"{neuron}.cell.nml")
-        
         return neuroml
 
     def generate_lems_file(self, neuroml_file_path, duration=500, dt=0.025):
@@ -507,13 +662,27 @@ class GraphToNeuroML:
                 color_g = hex(((i * 100) % 256)).replace("0x", "").zfill(2)
                 color_b = hex(((i * 150) % 256)).replace("0x", "").zfill(2)
                 color = f"#{color_r}{color_g}{color_b}"
-                
                 ls.add_line_to_display("display_voltages", f"{pop}_v", f"{pop}/0/v", "1mV", color)
+            
+            # Add muscle voltages to display
+            muscle_populations = self.muscle_classes[:min(3, len(self.muscle_classes))]
+            for i, muscle in enumerate(muscle_populations):
+                # Create a different color for muscles
+                color_r = hex(((i * 70 + 128) % 256)).replace("0x", "").zfill(2)
+                color_g = hex(((i * 30 + 50) % 256)).replace("0x", "").zfill(2)
+                color_b = hex(((i * 90 + 200) % 256)).replace("0x", "").zfill(2)
+                color = f"#{color_r}{color_g}{color_b}"
+                
+                ls.add_line_to_display("display_voltages", f"{muscle}_v", f"{muscle}/0/v", "1mV", color)
             
             # Create output file for data
             ls.create_output_file("output_voltages", f"{base_name}_voltages.dat")
             for pop in display_populations:
                 ls.add_column_to_output_file("output_voltages", f"{pop}_v", f"{pop}/0/v")
+            
+            # Add muscle voltages to output file
+            for muscle in muscle_populations:
+                ls.add_column_to_output_file("output_voltages", f"{muscle}_v", f"{muscle}/0/v")
             
             # Save to file
             lems_file = os.path.join(neuroml_dir, f"LEMS_{simulation_id}.xml")
@@ -530,6 +699,7 @@ class GraphToNeuroML:
         """
         Export a graph to a NeuroML file that matches the C. elegans pharyngeal
         nervous system format, including connections to the somatic nervous system
+        and muscle populations
         
         Args:
             G (nx.Graph): The network graph
@@ -557,10 +727,18 @@ class GraphToNeuroML:
             network_id = os.path.splitext(os.path.basename(output_path))[0]
             neuroml_doc = self.create_neuroml_document(network_id)
             
+            # Include somatic neuron references first
+            for somatic_neuron in self.somatic_neurons:
+                etree.SubElement(neuroml_doc, "include", href=f"{somatic_neuron}.cell.nml")
+            
             # Include references to necessary cell and synapse files
             # Note: These files should exist alongside the NeuroML file
             for cell_class in set(info['cell_class'] for info in node_types.values()):
                 etree.SubElement(neuroml_doc, "include", href=f"{cell_class}.cell.nml")
+            
+            # Include muscle cell definitions
+            for muscle_class in self.muscle_classes:
+                etree.SubElement(neuroml_doc, "include", href=f"{muscle_class}.cell.nml")
             
             # Include synapse references
             for synapse_type in set(self.synapse_types.values()):
@@ -673,6 +851,81 @@ class GraphToNeuroML:
                         z="0.0"
                     )
             
+            # Create muscle populations
+            for muscle_class in self.muscle_classes:
+                # Check if we've loaded reference muscle data
+                if muscle_class in self.reference_muscles:
+                    # Use reference data
+                    muscle_data = self.reference_muscles[muscle_class]
+                    pop = etree.SubElement(
+                        network,
+                        "population",
+                        id=muscle_class,
+                        component=muscle_data['component'],
+                        type="populationList",
+                        size=str(muscle_data['size'])
+                    )
+                    
+                    # Add color annotation
+                    annotation = etree.SubElement(pop, "annotation")
+                    color_hash = sum(ord(c) for c in muscle_class) % 100
+                    r = (color_hash * 7) % 100 / 100
+                    g = (color_hash * 11) % 100 / 100
+                    b = (color_hash * 29) % 100 / 100
+                    etree.SubElement(annotation, "property", tag="color", value=f"{r} {g} {b}")
+                    
+                    # Add muscle instances with positions from reference
+                    for i, instance_data in enumerate(muscle_data['positions']):
+                        instance = etree.SubElement(pop, "instance", id=str(i))
+                        
+                        # Use position from reference if available
+                        pos = instance_data['position']
+                        
+                        # Add location
+                        etree.SubElement(
+                            instance,
+                            "location",
+                            x=str(pos[0]),
+                            y=str(pos[1]),
+                            z=str(pos[2])
+                        )
+                else:
+                    # Create new muscle population without reference
+                    pop = etree.SubElement(
+                        network,
+                        "population",
+                        id=muscle_class,
+                        component=muscle_class,
+                        type="populationList",
+                        size="1"
+                    )
+                    
+                    # Add color annotation
+                    annotation = etree.SubElement(pop, "annotation")
+                    color_hash = sum(ord(c) for c in muscle_class) % 100
+                    r = (color_hash * 7) % 100 / 100
+                    g = (color_hash * 11) % 100 / 100
+                    b = (color_hash * 29) % 100 / 100
+                    etree.SubElement(annotation, "property", tag="color", value=f"{r} {g} {b}")
+                    
+                    # Generate a position for this muscle appropriate for pharyngeal system
+                    # Position muscles in a ring around the center with appropriate offset
+                    muscle_idx = self.muscle_classes.index(muscle_class)
+                    angle = 2 * np.pi * muscle_idx / len(self.muscle_classes)
+                    radius = 1.5  # Position muscles outside the neural network
+                    x = radius * np.cos(angle)
+                    y = radius * np.sin(angle)
+                    
+                    # Add instance
+                    instance = etree.SubElement(pop, "instance", id="0")
+                    etree.SubElement(
+                        instance,
+                        "location",
+                        x=str(x),
+                        y=str(y),
+                        z="0.0"
+                    )
+            
             # --- IMPORTANT CHANGE: Reorder projections to follow NeuroML schema ---
             
             # First collect all projections by type to ensure proper ordering
@@ -746,6 +999,78 @@ class GraphToNeuroML:
                         'synapse_type': synapse_type,
                         'is_interface': True
                     })
+            
+            # Process neuromuscular connections
+            # First, check if we have reference neuromuscular connections
+            if self.reference_neuromuscular:
+                # Use the reference neuromuscular connections
+                for conn in self.reference_neuromuscular:
+                    pre_pop = conn['pre_pop']
+                    post_pop = conn['post_pop']
+                    synapse = conn['synapse']
+                    
+                    # Skip if either population isn't in our network
+                    if (pre_pop not in population_nodes.keys() and pre_pop not in self.muscle_classes) or \
+                       (post_pop not in population_nodes.keys() and post_pop not in self.muscle_classes):
+                        continue
+                    
+                    # Add to chemical projections with fixed indices
+                    chemical_projections.append({
+                        'source_class': pre_pop,
+                        'target_class': post_pop,
+                        'source_idx': 0, # Usually just one cell in each population
+                        'target_idx': 0,
+                        'synapse_type': synapse,
+                        'is_muscle_connection': True
+                    })
+            else:
+                # Use default neuromuscular connections
+                for motor_neuron, muscle, synapse_type in self.neuromuscular_connections:
+                    # Check if the motor neuron exists
+                    if motor_neuron not in population_nodes.keys():
+                        continue
+                        
+                    # Add to chemical projections
+                    chemical_projections.append({
+                        'source_class': motor_neuron,
+                        'target_class': muscle,
+                        'source_idx': 0,
+                        'target_idx': 0,
+                        'synapse_type': synapse_type,
+                        'is_muscle_connection': True
+                    })
+            
+            # Process muscle gap junctions
+            if self.reference_muscle_gap_junctions:
+                # Use reference muscle gap junctions
+                for conn in self.reference_muscle_gap_junctions:
+                    pre_pop = conn['pre_pop']
+                    post_pop = conn['post_pop']
+                    
+                    # Both populations should be muscles
+                    if pre_pop not in self.muscle_classes or post_pop not in self.muscle_classes:
+                        continue
+                        
+                    # Add to electrical projections
+                    electrical_projections.append({
+                        'source_class': pre_pop,
+                        'target_class': post_pop,
+                        'source_idx': 0,
+                        'target_idx': 0,
+                        'is_muscle_connection': True
+                    })
+            else:
+                # Use default muscle gap junctions
+                for muscle1, muscle2 in self.muscle_gap_junctions:
+                    # Add to electrical projections
+                    electrical_projections.append({
+                        'source_class': muscle1,
+                        'target_class': muscle2,
+                        'source_idx': 0,
+                        'target_idx': 0,
+                        'is_muscle_connection': True
+                    })
+            
             projection_counter = 0      
             # 1. Add chemical projections
             chemical_proj_map = {}  # To track existing projections
@@ -757,10 +1082,13 @@ class GraphToNeuroML:
                 target_idx = proj_data['target_idx']
                 synapse_type = proj_data['synapse_type']
                 is_interface = proj_data.get('is_interface', False)
+                is_muscle_connection = proj_data.get('is_muscle_connection', False)
                 
-                # Create different projection IDs for interface vs internal
+                # Create different projection IDs based on connection type
                 if is_interface:
                     proj_id = f"NC_{source_class}_{target_class}"
+                elif is_muscle_connection:
+                    proj_id = f"NCNMJ_{source_class}_{target_class}"
                 else:
                     proj_id = f"NCXLS_{source_class}_{target_class}"
                 
@@ -810,9 +1138,13 @@ class GraphToNeuroML:
                 target_class = proj_data['target_class']
                 source_idx = proj_data['source_idx']
                 target_idx = proj_data['target_idx']
+                is_muscle_connection = proj_data.get('is_muscle_connection', False)
                 
                 # Create projection ID
-                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
+                if is_muscle_connection:
+                    proj_id = f"MuscleGJ_{source_class}_{target_class}"
+                else:
+                    proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
                 
                 # Check if we've already created this projection
                 if proj_id not in electrical_proj_map:
@@ -856,212 +1188,194 @@ class GraphToNeuroML:
             tree.write(output_path, pretty_print=True, xml_declaration=True, encoding="UTF-8")
             
             print(f"Successfully exported to {output_path}")
+            print(f"Neural populations: {len(population_nodes)}")
+            print(f"Muscle populations: {len(self.muscle_classes)}")
+            print(f"Chemical connections: {len(chemical_projections)}")
+            print(f"Electrical connections: {len(electrical_projections)}")
+            
+            # Generate LEMS simulation file for the exported network
             self.generate_lems_file(output_path)
 
             return True
             
         except Exception as e:
             print(f"Error exporting to NeuroML: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
-    def _create_internal_projections(self, network, synapse_props, node_types, population_nodes):
-        """Create internal projections within the pharyngeal nervous system"""
-        projection_counter = 0
-        for conn_id, props in synapse_props.items():
-            source_node = props['source']
-            target_node = props['target']
-            
-            # Get source and target cell classes
-            source_class = node_types[source_node]['cell_class']
-            target_class = node_types[target_node]['cell_class']
-            
-            # Get indices within their respective populations
-            source_idx = population_nodes[source_class].index(source_node)
-            target_idx = population_nodes[target_class].index(target_node)
-            
-            # Creating projection ID following the conventions in PharyngealNetwork.net.nml
-            # Format: NCXLS_<SOURCE>_<TARGET> for chemical synapses
-            # Format: NCXLS_<SOURCE>_<TARGET>_GJ for gap junctions
-            synapse_type = props['synapse_type']
-            is_gap_junction = props['is_gap_junction']
-            
-            if is_gap_junction:
-                proj_id = f"NCXLS_{source_class}_{target_class}_GJ"
-                
-                # Check if projection already exists
-                existing_proj = network.find(f".//electricalProjection[@id='{proj_id}']")
-                if existing_proj is None:
-                    # Create new electrical projection
-                    proj = etree.SubElement(
-                        network,
-                        "electricalProjection",
-                        id=proj_id,
-                        presynapticPopulation=source_class,
-                        postsynapticPopulation=target_class
-                    )
-                else:
-                    proj = existing_proj
-                
-                # Add connection
-                conn = etree.SubElement(
-                    proj,
-                    "electricalConnection",
-                    id=str(projection_counter),
-                    preCell=str(source_idx),
-                    postCell=str(target_idx),
-                    synapse="Generic_GJ"
-                )
-                
-                # Add synaptic location parameters
-                pre_segment = np.random.randint(1, 10)
-                post_segment = np.random.randint(1, 10)
-                pre_frac = np.random.random()
-                post_frac = np.random.random()
-                
-                conn.attrib["preSegment"] = str(pre_segment)
-                conn.attrib["postSegment"] = str(post_segment)
-                conn.attrib["preFractionAlong"] = str(pre_frac)
-                conn.attrib["postFractionAlong"] = str(post_frac)
-                
-            else:
-                # Chemical synapse
-                proj_id = f"NCXLS_{source_class}_{target_class}"
-                
-                # Check if projection already exists
-                existing_proj = network.find(f".//projection[@id='{proj_id}']")
-                if existing_proj is None:
-                    # Create new projection
-                    proj = etree.SubElement(
-                        network,
-                        "projection",
-                        id=proj_id,
-                        presynapticPopulation=source_class,
-                        postsynapticPopulation=target_class,
-                        synapse=synapse_type
-                    )
-                else:
-                    proj = existing_proj
-                
-                # Add connection
-                conn = etree.SubElement(
-                    proj,
-                    "connection",
-                    id=str(projection_counter),
-                    preCellId=f"../{source_class}/{source_idx}/{source_class}",
-                    postCellId=f"../{target_class}/{target_idx}/{target_class}"
-                )
-                
-                # Add synaptic location parameters
-                pre_segment = np.random.randint(1, 10)
-                post_segment = np.random.randint(1, 10)
-                pre_frac = np.random.random()
-                post_frac = np.random.random()
-                
-                conn.attrib["preSegmentId"] = str(pre_segment)
-                conn.attrib["postSegmentId"] = str(post_segment)
-                conn.attrib["preFractionAlong"] = str(pre_frac)
-                conn.attrib["postFractionAlong"] = str(post_frac)
-            
-            projection_counter += 1
-    
-    def _create_interface_connections(self, network, node_types, population_nodes):
-        """Create connections between pharyngeal and somatic nervous system"""
-        # Counter for connection IDs
-        projection_counter = 1000  # Start from 1000 to avoid conflicts
+    def incorporate_muscles_from_reference(self, reference_neuroml_file, output_neuroml_file):
+        """
+        Take an existing GVFT-generated NeuroML file and incorporate muscle populations
+        and connections from a reference NeuroML file.
         
-        # Create the interface connections
-        for pharyngeal_neuron, somatic_neuron, direction, synapse_type in self.somatic_connections:
-            # Check if the pharyngeal neuron exists in our node types
-            pharyngeal_found = False
-            for cell_class in population_nodes.keys():
-                if cell_class == pharyngeal_neuron:
-                    pharyngeal_found = True
-                    break
+        Args:
+            reference_neuroml_file (str): Path to reference NeuroML file with muscle definitions
+            output_neuroml_file (str): Path to save the enhanced NeuroML file
             
-            if not pharyngeal_found:
-                print(f"Warning: Pharyngeal neuron {pharyngeal_neuron} not found in the network, skipping interface connection.")
-                continue
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Set reference file and extract muscle data
+            self.reference_neuroml_file = reference_neuroml_file
+            self._extract_muscle_data_from_reference()
+            
+            # Parse the existing NeuroML file
+            parser = etree.XMLParser(remove_comments=True)
+            tree = etree.parse(output_neuroml_file, parser)
+            root = tree.getroot()
+            
+            # Get the namespace
+            nsmap = root.nsmap
+            if None in nsmap:
+                ns = '{' + nsmap[None] + '}'
+            else:
+                ns = ''
+            
+            # Find the network element
+            network = root.find(f".//{ns}network", namespaces=nsmap)
+            if network is None:
+                print("Error: Could not find network element")
+                return False
+            
+            # Add muscle cell includes if not already present
+            for muscle_class in self.muscle_classes:
+                # Check if include already exists
+                include_exists = False
+                for include in root.findall(f".//{ns}include", namespaces=nsmap):
+                    if include.get('href') == f"{muscle_class}.cell.nml":
+                        include_exists = True
+                        break
                 
-            # For outgoing connections (pharyngeal -> somatic)
-            if direction == "outgoing":
-                # Create projection ID
-                proj_id = f"NC_{pharyngeal_neuron}_{somatic_neuron}"
+                if not include_exists:
+                    # Add include element for this muscle
+                    etree.SubElement(root, "include", href=f"{muscle_class}.cell.nml")
+            
+            # Add muscle populations if not already present
+            for muscle_class in self.muscle_classes:
+                # Check if population already exists
+                pop_exists = False
+                for pop in network.findall(f".//{ns}population", namespaces=nsmap):
+                    if pop.get('id') == muscle_class:
+                        pop_exists = True
+                        break
                 
-                # Check if projection already exists
-                existing_proj = network.find(f".//projection[@id='{proj_id}']")
-                if existing_proj is None:
-                    # Create new projection
-                    proj = etree.SubElement(
-                        network,
-                        "projection",
-                        id=proj_id,
-                        presynapticPopulation=pharyngeal_neuron,
-                        postsynapticPopulation=somatic_neuron,
-                        synapse=synapse_type
-                    )
-                else:
-                    proj = existing_proj
-                
-                # Add connection - note we use the first neuron in each population
-                conn = etree.SubElement(
-                    proj,
-                    "connection",
-                    id=str(projection_counter),
-                    preCellId=f"../{pharyngeal_neuron}/0/{pharyngeal_neuron}",
-                    postCellId=f"../{somatic_neuron}/0/{somatic_neuron}"
-                )
-                
-                # Add synaptic location parameters
-                pre_segment = np.random.randint(1, 10)
-                post_segment = np.random.randint(1, 10)
-                pre_frac = np.random.random()
-                post_frac = np.random.random()
-                
-                conn.attrib["preSegmentId"] = str(pre_segment)
-                conn.attrib["postSegmentId"] = str(post_segment)
-                conn.attrib["preFractionAlong"] = str(pre_frac)
-                conn.attrib["postFractionAlong"] = str(post_frac)
-                
-                projection_counter += 1
-                
-            # For incoming connections (somatic -> pharyngeal)
-            elif direction == "incoming":
-                # Create projection ID
-                proj_id = f"NC_{somatic_neuron}_{pharyngeal_neuron}"
-                
-                # Check if projection already exists
-                existing_proj = network.find(f".//projection[@id='{proj_id}']")
-                if existing_proj is None:
-                    # Create new projection
-                    proj = etree.SubElement(
-                        network,
-                        "projection",
-                        id=proj_id,
-                        presynapticPopulation=somatic_neuron,
-                        postsynapticPopulation=pharyngeal_neuron,
-                        synapse=synapse_type
-                    )
-                else:
-                    proj = existing_proj
-                
-                # Add connection
-                conn = etree.SubElement(
-                    proj,
-                    "connection",
-                    id=str(projection_counter),
-                    preCellId=f"../{somatic_neuron}/0/{somatic_neuron}",
-                    postCellId=f"../{pharyngeal_neuron}/0/{pharyngeal_neuron}"
-                )
-                
-                # Add synaptic location parameters
-                pre_segment = np.random.randint(1, 10)
-                post_segment = np.random.randint(1, 10)
-                pre_frac = np.random.random()
-                post_frac = np.random.random()
-                
-                conn.attrib["preSegmentId"] = str(pre_segment)
-                conn.attrib["postSegmentId"] = str(post_segment)
-                conn.attrib["preFractionAlong"] = str(pre_frac)
-                conn.attrib["postFractionAlong"] = str(post_frac)
-                
-                projection_counter += 1
+                if not pop_exists:
+                    # Add muscle population
+                    if muscle_class in self.reference_muscles:
+                        # Use reference data
+                        muscle_data = self.reference_muscles[muscle_class]
+                        pop = etree.SubElement(
+                            network,
+                            "population",
+                            id=muscle_class,
+                            component=muscle_data['component'],
+                            type="populationList",
+                            size=str(muscle_data['size'])
+                        )
+                        
+                        # Add color annotation
+                        annotation = etree.SubElement(pop, "annotation")
+                        color_hash = sum(ord(c) for c in muscle_class) % 100
+                        r = (color_hash * 7) % 100 / 100
+                        g = (color_hash * 11) % 100 / 100
+                        b = (color_hash * 29) % 100 / 100
+                        etree.SubElement(annotation, "property", tag="color", value=f"{r} {g} {b}")
+                        
+                        # Add muscle instances with positions from reference
+                        for i, instance_data in enumerate(muscle_data['positions']):
+                            instance = etree.SubElement(pop, "instance", id=str(i))
+                            
+                            # Use position from reference if available
+                            pos = instance_data['position']
+                            
+                            # Add location
+                            etree.SubElement(
+                                instance,
+                                "location",
+                                x=str(pos[0]),
+                                y=str(pos[1]),
+                                z=str(pos[2])
+                            )
+                    else:
+                        # Create new muscle population without reference
+                        pop = etree.SubElement(
+                            network,
+                            "population",
+                            id=muscle_class,
+                            component=muscle_class,
+                            type="populationList",
+                            size="1"
+                        )
+                        
+                        # Add color annotation
+                        annotation = etree.SubElement(pop, "annotation")
+                        color_hash = sum(ord(c) for c in muscle_class) % 100
+                        r = (color_hash * 7) % 100 / 100
+                        g = (color_hash * 11) % 100 / 100
+                        b = (color_hash * 29) % 100 / 100
+                        etree.SubElement(annotation, "property", tag="color", value=f"{r} {g} {b}")
+                        
+                        # Generate a position for this muscle appropriate for pharyngeal system
+                        # Position muscles in a ring around the center with appropriate offset
+                        muscle_idx = self.muscle_classes.index(muscle_class)
+                        angle = 2 * np.pi * muscle_idx / len(self.muscle_classes)
+                        radius = 1.5  # Position muscles outside the neural network
+                        x = radius * np.cos(angle)
+                        y = radius * np.sin(angle)
+                        
+                        # Add instance
+                        instance = etree.SubElement(pop, "instance", id="0")
+                        etree.SubElement(
+                            instance,
+                            "location",
+                            x=str(x),
+                            y=str(y),
+                            z="0.0"
+                        )
+            
+            # Find highest connection ID to continue from
+            max_conn_id = 0
+            for proj in network.findall(f".//{ns}projection", namespaces=nsmap):
+                for conn in proj.findall(f".//{ns}connection", namespaces=nsmap):
+                    try:
+                        conn_id = int(conn.get('id', '0'))
+                        max_conn_id = max(max_conn_id, conn_id)
+                    except ValueError:
+                        pass
+            
+            for el_proj in network.findall(f".//{ns}electricalProjection", namespaces=nsmap):
+                for conn in el_proj.findall(f".//{ns}electricalConnection", namespaces=nsmap):
+                    try:
+                        conn_id = int(conn.get('id', '0'))
+                        max_conn_id = max(max_conn_id, conn_id)
+                    except ValueError:
+                        pass
+            
+            conn_id_counter = max_conn_id + 1
+            
+            # Add neuromuscular connections if not already present
+            if self.reference_neuromuscular:
+                # Use reference neuromuscular connections
+                for conn_data in self.reference_neuromuscular:
+                    pre_pop = conn_data['pre_pop']
+                    post_pop = conn_data['post_pop']
+                    synapse = conn_data['synapse']
+                    
+                    # Check if projection already exists
+                    proj_id = f"NCNMJ_{pre_pop}_{post_pop}"
+                    existing_proj = network.find(f".//{ns}projection[@id='{proj_id}']", namespaces=nsmap)
+                    
+                    if existing_proj is None:
+                        # Create new projection
+                        proj = etree.SubElement(
+                            network,
+                            "projection",
+                            id=proj_id,
+                            presynapticPopulation=pre_pop,
+                            postsynapticPopulation=post_pop,
+                            synapse=synapse
+                        )
+                        
+                import networkx as nx
