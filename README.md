@@ -10,7 +10,7 @@ Imagine trying to design a brain—not by hand-crafting every connection, but by
 
 ## Experimental Methodology
 
-We’re testing GVFT through two experimental pipelines:
+We’re testing GVFT through three experimental pipelines:
 
 ### 1. **Synthetic Field Simulation (Exploratory Regime)**
 - We randomly initialize GVFT fields and evolve them over time using reaction-diffusion dynamics.
@@ -24,13 +24,20 @@ We’re testing GVFT through two experimental pipelines:
 - This new network is converted back into NeuroML2 and simulated using NEURON via pyNeuroML.
 - We stimulate it and observe whether the evolved architecture shows biologically plausible behavior (e.g. oscillations, persistent activity).
 
+### 3. **Random or Flat Priors (Unsupervised Emergence Regime)**
+- We initialize GVFT fields with either flat (uniform) values or structured noise rather than biological priors.
+- These uninformed initial conditions evolve freely under the same GVFT dynamics.
+- We then instantiate the resulting fields into neural networks, simulate them, and test whether spontaneous or emergent structure arises.
+- This tests whether GVFT can discover viable network motifs from scratch, not just preserve existing ones.
+
 ### Comparison with Baseline Neural Dynamics
-- We run parallel NEURON simulations on both the original biological connectome and the GVFT-evolved version.
+- We run parallel NEURON simulations on both the original biological connectome and the GVFT-evolved versions (from both priors and noise).
 - We measure neural activity metrics such as membrane potential traces, frequency spectra, and synchrony.
-- If the GVFT-evolved network exhibits oscillations or coherent activity patterns similar to the original, it supports the claim that GVFT preserves or re-discovers key dynamical motifs.
+- If the GVFT-evolved networks exhibit oscillations or coherent activity patterns similar to the original, it supports the claim that GVFT preserves or re-discovers key dynamical motifs.
 - If differences arise, we analyze whether they are noise, loss of function, or potentially novel stable regimes.
 
-This dual approach lets us both explore GVFT's theoretical landscape and validate its biological relevance.
+This multi-pronged approach lets us both explore GVFT's generative potential and validate its biological relevance.
+
 
 
 ## FUNCTIONAL FEATURES
